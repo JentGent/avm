@@ -23,13 +23,16 @@ def simulate(num_intranidal_verts, num_extranidal_verts, extranidal_edges, resis
         p_ext = p_ext + [0 for i in range(len(p_ext), graph.number_of_edges())]
         flow, pressure = get_Q_and_P(graph, num_intranidal_verts, num_extranidal_verts, resistances + [INTRANIDAL_RESISTANCE for i in range(len(resistances), graph.number_of_edges())], p_ext)
         flow_pressures.append((flow, pressure))
-        pos = nx.spring_layout(graph)
+
+        # display
+        digraph = nx.DiGraph([(edge[1], edge[0]) if flow[i, 0] < 0 else edge for i, edge in enumerate(graph.edges)])
+        pos = nx.spring_layout(digraph)
         colors = ["red" if i < num_intranidal_verts else "green" for i in range(num_intranidal_verts + num_extranidal_verts)]
-        nx.draw_networkx_nodes(graph, pos, node_color = [colors[node] for node in graph.nodes()])
-        nx.draw_networkx_labels(graph, pos)
-        nx.draw_networkx_edges(graph, pos)
-        edge_labels = { edge: str(round(flow[i, 0], 3)) + "\n" + str(round(pressure[i, 0], 3)) for i, edge in enumerate(graph.edges()) }
-        nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+        nx.draw_networkx_nodes(digraph, pos, node_color = [colors[node] for node in digraph.nodes()])
+        nx.draw_networkx_labels(digraph, pos)
+        nx.draw_networkx_edges(digraph, pos)
+        edge_labels = { edge: str(round(abs(flow[i, 0]), 3)) + "\n" + str(round(pressure[i, 0] * (-1 if flow[i, 0] < 0 else 1), 3)) for i, edge in enumerate(digraph.edges()) }
+        nx.draw_networkx_edge_labels(digraph, pos, edge_labels)
         plt.show()
     return flow_pressures
 
@@ -97,4 +100,4 @@ def get_Q_and_P(graph: nx.Graph, num_intranidal_verts, num_extranidal_verts, res
 
 NUM_INTRA = 10
 NUM_EXTRA = 3
-print(simulate(NUM_INTRA, NUM_EXTRA, [(NUM_INTRA, 0), (NUM_INTRA + 1, 1), (NUM_INTRA - 1, NUM_INTRA + 2)], [1, 0.5, 2], [2, 1, -1], 1, 20))
+print(simulate(NUM_INTRA, NUM_EXTRA, [(NUM_INTRA, 0), (NUM_INTRA + 1, 1), (NUM_INTRA - 1, NUM_INTRA + 2)], [1, 0.5, 2], [2, 1, 1], 1, 20))
