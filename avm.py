@@ -20,7 +20,8 @@ def simulate(num_intranidal_verts, num_extranidal_verts, extranidal_edges, resis
                 if random.random() < probability:
                     intranidal_edges.append((j, k))
         graph = nx.Graph(extranidal_edges + intranidal_edges)
-        flow, pressure = get_Q_and_P(graph, num_intranidal_verts, num_extranidal_verts, resistances + [INTRANIDAL_RESISTANCE for edge in intranidal_edges], p_ext)
+        p_ext = p_ext + [0 for i in range(len(p_ext), graph.number_of_edges())]
+        flow, pressure = get_Q_and_P(graph, num_intranidal_verts, num_extranidal_verts, resistances + [INTRANIDAL_RESISTANCE for i in range(len(resistances), graph.number_of_edges())], p_ext)
         flow_pressures.append((flow, pressure))
         pos = nx.spring_layout(graph)
         colors = ["red" if i < num_intranidal_verts else "green" for i in range(num_intranidal_verts + num_extranidal_verts)]
@@ -32,19 +33,19 @@ def simulate(num_intranidal_verts, num_extranidal_verts, extranidal_edges, resis
         plt.show()
     return flow_pressures
 
-def extranidals(cycle, num_extranidal_verts):
-    return [node for node in cycle if node < num_extranidal_verts]
-
 # Rv * Q = ΔΔP
 # Matrix product representing satisfaction of Kirchoff's laws (solve to calculate flow Q)
 def get_ΔΔP(graph: nx.Graph, num_intranidal_verts, num_extranidal_verts, cycles, resistances, p_ext):
     # First law: sum of flow towards each node is 0
     # Second law: total pressure change after traversing any closed loop is 0
     # ==> The only nonzero values of ΔΔP are those where there is an external pressure source
+    all_edges = list(graph.edges())
     ΔΔP = [0 for i in range(num_intranidal_verts)]
     for cycle in cycles:
-        ext = extranidals(cycle, num_extranidal_verts)
-        total_pressure = sum([p_ext[i] for i in ext])
+        total_pressure = 0
+        for i, node1 in enumerate(cycle):
+            edge = (node1, cycle[(i + 1) % len(cycle)])
+            total_pressure += p_ext[all_edges.index(edge if edge in all_edges else (edge[1], edge[0]))]
         ΔΔP.append(total_pressure)
     return np.array([ΔΔP]).T
 
@@ -96,4 +97,4 @@ def get_Q_and_P(graph: nx.Graph, num_intranidal_verts, num_extranidal_verts, res
 
 NUM_INTRA = 10
 NUM_EXTRA = 3
-print(simulate(NUM_INTRA, NUM_EXTRA, [(NUM_INTRA, 0), (NUM_INTRA + 1, 1), (NUM_INTRA - 1, NUM_INTRA + 2)], [1, 0.5, 2], [2, 1, -1], 1, 10))
+print(simulate(NUM_INTRA, NUM_EXTRA, [(NUM_INTRA, 0), (NUM_INTRA + 1, 1), (NUM_INTRA - 1, NUM_INTRA + 2)], [1, 0.5, 2], [2, 1, -1], 1, 20))
