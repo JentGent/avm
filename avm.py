@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from itertools import islice
 from scipy.optimize import lsq_linear
 
+ONLY_INTRANIDAL = False
 VISCOSITY = 0.04
 NODE_POS = {
     1: [-1, 0.5],
@@ -42,7 +43,7 @@ def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, flo
     nx.set_edge_attributes(graph, { edge: pressure for edge in edges if graph.edges[edge]["start"] == node}, "pressure")
     for edge in edges:
         next_node = edge[1]
-        if "pressure" not in graph.nodes[next_node]:
+        if "pressure" not in graph.nodes[next_node] and graph.edges[edge]["start"] == node:
             next_pressure = pressure + graph.edges[edge]["Δpressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
             pressure_forward(graph, next_node, next_pressure, pressures)
 
@@ -120,7 +121,7 @@ def simulate(intranidal_nodes: list, edges: list[list], pressures: dict[str, flo
         flow_pressures.append((flow, pressure))
         calc_pressures(graph, pressures)
         
-        pnodes = [node for node in graph.nodes("pressure") if node[0] in intranidal_nodes]
+        pnodes = [node for node in graph.nodes("pressure") if not ONLY_INTRANIDAL or node[0] in intranidal_nodes]
         graph = nx.DiGraph(
             [
                 (edge[2]["end" if edge[2]["flow"] < 0 else "start"], edge[2]["start" if edge[2]["flow"] < 0 else "end"],
@@ -132,7 +133,7 @@ def simulate(intranidal_nodes: list, edges: list[list], pressures: dict[str, flo
                     "flow": abs(edge[2]["flow"]) * 60, # cm^3/s = 60 mL/min
                     "Δpressure": abs(edge[2]["Δpressure"])
                 }) for i, edge in enumerate(graph.edges(data = True))
-                #  if edge[0] in intranidal_nodes and edge[1] in intranidal_nodes
+                 if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
             ]
         )
         graph.add_nodes_from([(node[0], { "pressure": node[1] }) for node in pnodes])
@@ -182,25 +183,25 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext):
                 flow[index] = -graph.edges[edge]["resistance"]
                 total_pressure -= p_ext[node1] if node1 in p_ext else 0
         Rv.append(flow)
-        ΔΔP.append(total_pressure)
-        # ΔΔP.append(0)
+        # ΔΔP.append(total_pressure)
+        ΔΔP.append(0)
     
     # assigned pressures
-    # nodes_of_p_ext = list(p_ext.keys())
-    # for i, start in enumerate(nodes_of_p_ext[:-1]):
-    #     for end in nodes_of_p_ext[i + 1:]:
-    #         path = nx.shortest_path(graph, start, end)
-    #         ΔΔP.append(p_ext[start] - p_ext[end])
-    #         flow = [0 for _ in range(num_edges)]
-    #         for k, node1 in enumerate(path[:-1]):
-    #             edge = (node1, path[k + 1])
-    #             if edge in all_edges:
-    #                 index = all_edges.index(edge)
-    #                 flow[index] = graph.edges[edge]["resistance"]
-    #             else:
-    #                 index = all_edges.index((edge[1], edge[0]))
-    #                 flow[index] = -graph.edges[edge]["resistance"]
-    #         Rv.append(flow)
+    nodes_of_p_ext = list(p_ext.keys())
+    for i, start in enumerate(nodes_of_p_ext[:-1]):
+        for end in nodes_of_p_ext[i + 1:]:
+            path = nx.shortest_path(graph, start, end)
+            ΔΔP.append(p_ext[start] - p_ext[end])
+            flow = [0 for _ in range(num_edges)]
+            for k, node1 in enumerate(path[:-1]):
+                edge = (node1, path[k + 1])
+                if edge in all_edges:
+                    index = all_edges.index(edge)
+                    flow[index] = graph.edges[edge]["resistance"]
+                else:
+                    index = all_edges.index((edge[1], edge[0]))
+                    flow[index] = -graph.edges[edge]["resistance"]
+            Rv.append(flow)
     
     result = np.linalg.lstsq(np.array(Rv), np.array([ΔΔP]).T, rcond = None)
     # result = lsq_linear(np.array(Rv), np.array(ΔΔP), bounds = ([0 if "locked" in graph.edges[edge] else -np.inf for edge in all_edges], [np.inf for edge in all_edges]))
