@@ -114,7 +114,7 @@ def main():
     network = avm.edges_to_graph(VESSELS)
     flow, pressure, graph = avm.simulate(network, [], PRESSURES)
     print(len(flow))
-    flow = avm.unique_with_tolerance(flow, 0.00000001)
+    flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
     flow = np.append(flow, 820.71 / 60)
     print(len(flow))
 
@@ -128,6 +128,7 @@ def main():
     print(f"Maximum pressure: {np.max(np.abs(pressure / avm.MMHG_TO_DYNCM))}")
     print(f"Average pressure: {np.average(np.abs(pressure / avm.MMHG_TO_DYNCM))}")
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+
 
 """
 Vessel flow range: (0.4393220698311891, 820.7097137783559) mL/min
