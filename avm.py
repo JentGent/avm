@@ -91,15 +91,25 @@ VESSELS = [
 
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
-    "SP": 74 * MMHG_TO_DYNCM,
-    "AF1": 47 * MMHG_TO_DYNCM,
-    "AF2": 47 * MMHG_TO_DYNCM,
-    "AF3": 50 * MMHG_TO_DYNCM,
-    "AF4": 50 * MMHG_TO_DYNCM,
-    "DV1": 17 * MMHG_TO_DYNCM,
-    "DV2": 17 * MMHG_TO_DYNCM,
-    "DV3": 17 * MMHG_TO_DYNCM,
-    "CVP": 5 * MMHG_TO_DYNCM
+    # "SP": 74 * MMHG_TO_DYNCM,
+    # "AF1": 47 * MMHG_TO_DYNCM,
+    # "AF2": 47 * MMHG_TO_DYNCM,
+    # "AF3": 50 * MMHG_TO_DYNCM,
+    # "AF4": 50 * MMHG_TO_DYNCM,
+    # "DV1": 17 * MMHG_TO_DYNCM,
+    # "DV2": 17 * MMHG_TO_DYNCM,
+    # "DV3": 17 * MMHG_TO_DYNCM,
+    # "CVP": 5 * MMHG_TO_DYNCM
+    
+    # (32, "SP"): 74 * MMHG_TO_DYNCM,
+    ("SP", 1): 74 * MMHG_TO_DYNCM,
+    (3, 12): 47 * MMHG_TO_DYNCM,
+    (6, 14): 47 * MMHG_TO_DYNCM,
+    (6, 13): 50 * MMHG_TO_DYNCM,
+    (9, 18): 50 * MMHG_TO_DYNCM,
+    (30, 11): 17 * MMHG_TO_DYNCM,
+    (29, 11): 17 * MMHG_TO_DYNCM,
+    (31, 32): 5 * MMHG_TO_DYNCM
 }
 
 # INTRANIDAL_NODES is a list of nodes in the nidus.
@@ -245,32 +255,31 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
     return graph
 
 
-def simulate(graph: nx.Graph, intranidal_nodes: list, pressures: dict[str, float]):
+def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]):
     """Simulate the nidus.
 
     Args:
         graph (nx.Graph): Graph from `edges_to_graph()` or `generate_nidus()`.
         intranidal_nodes (list): List of nodes in the nidus to generate edges between.
-        pressures (dict[str, float]): A dictionary of known node : pressure values.
+        p_ext (dict[str, float]): A dictionary of known node : pressure values.
         num_nidi (int): Number of nidi to simulate.
         num_expected_edges (int): Expected number of edges to generate in the nidus.
     """
-    flow, pressure, all_edges = get_Q_and_P(graph, pressures)
-    calc_pressures(graph, pressures)
+    flow, pressure, all_edges = get_Q_and_P(graph, p_ext)
+    # calc_pressures(graph, p_ext)
 
-    pnodes = [node for node in graph.nodes(
-        "pressure") if not ONLY_INTRANIDAL or node[0] in intranidal_nodes]
+    pnodes = [node for node in graph.nodes("pressure") if not ONLY_INTRANIDAL or node[0] in intranidal_nodes]
     graph = nx.DiGraph(
         [
             (edge[2]["end" if edge[2]["flow"] < 0 else "start"], edge[2]["start" if edge[2]["flow"] < 0 else "end"],
                 {
-                "radius": edge[2]["radius"],
-                "length": edge[2]["length"],
-                "resistance": edge[2]["resistance"],
-                "label": edge[2]["label"],
-                "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
-                "Δpressure": abs(edge[2]["Δpressure"]) / 
-            }) for i, edge in enumerate(graph.edges(data=True))
+                    "radius": edge[2]["radius"],
+                    "length": edge[2]["length"],
+                    "resistance": edge[2]["resistance"],
+                    "label": edge[2]["label"],
+                    "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
+                    "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYNCM
+                }) for i, edge in enumerate(graph.edges(data=True))
             if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
         ]
     )
@@ -322,11 +331,13 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext):
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = graph.edges[edge]["resistance"]
-                total_pressure += p_ext[node1] if node1 in p_ext else 0
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -graph.edges[edge]["resistance"]
-                total_pressure -= p_ext[node1] if node1 in p_ext else 0
+            if edge in p_ext:
+                total_pressure += p_ext[edge]
+            elif (node2, node1) in p_ext:
+                total_pressure -= p_ext[(node2, node1)]
         Rv.append(flow)
         ΔΔP.append(total_pressure)
         # ΔΔP.append(0)
