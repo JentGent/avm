@@ -47,46 +47,21 @@ NODE_POS = {
 
 # VESSELS is formatted like [first node, second node, radius, length, resistance, label].
 VESSELS = [
-    # Cardiovasculature
-    [13, "SP", 0.75, 10, 32, "superior vena cava"],  # from heart up
-    ["SP", 1, 1, 10, 1, "aortic arch"],  # from brain to heart
-    [1, 2, 0.35, 10, 67.9, "SCA"],  # subclavian artery
-
-    # Head and neck vasculature
-    # Neck and extracranial circulation
-    [1, 4, 0.35, 10, 67.9, "CCA"],  # common cartid artery
-    [4, 5, 0.2, 10, 637.5, "ECA"],  # external carotid artery
-    # capillary bed data not given; arbitrary data
-    [5, 9, 0.01, 0.1, 1000000, ""],
-    [9, 10, 0.01, 0.1, 1000000, ""],
-    [10, 11, 0.125, 10, 4177.9, ""],
-    [12, "CVP", 0.4, 10, 79.7 / 2, "CVP"],  # central venous pressure
-    # i divided the length in 2; the original paper omits the CVP node in the model data; external pressure seems to have been defined separately from nodes?
-    ["CVP", 13, 0.4, 10, 79.7 / 2, "jugular veins"],
-    # Intracranial circulation
-    [4, 6, 0.25, 20, 522, "ICA"],  # internal carotid artery
-    [2, 3, 0.15, 25, 5037, "VA"],  # vertebral artery
-    [6, 7, 0.1, 10, 10200, ""],
-    [7, 8, 0.01, 0.1, 1000000, ""],
-    [8, 11, 0.125, 10, 4177.9, ""],
-    [11, 12, 0.25, 10, 261, "dural venous sinuses"],
-
-    # AVM vasculature
-    # Major arterial feeders
-    [3, "AF1", 0.125, 5.2, 2210, "PCA"],  # posterior cerebral artery
-    [6, "AF2", 0.15, 3.7, 745.5, "MCA"],  # middle cerebral artery
-    # Minor arterial feeders
-    [6, "AF3", 0.025, 3.7, 15725000, "ACA"],  # anterior cerebral artery
-    [9, "AF4", 0.0125, 3, 12750000, "TFA"],  # transdural feeding artery
-    # Fistulous nidus vessels
-    ["AF2", 14, 0.1, 4, 4080, ""],
-    [14, 15, 0.1, 4, 4080, ""],
-    [15, 16, 0.1, 4, 4080, ""],
-    [16, "DV2", 0.1, 4, 4080, ""],
-    # Draining veins
-    ["DV1", 11, 0.25, 5, 130.5, ""],
-    ["DV2", 11, 0.25, 5, 130.5, ""],
-    ["DV3", 11, 0.25, 5, 130.5, ""],
+    [1, 2, 0, 0, 67.9, "R1"],
+    [1, 4, 0, 0, 67.9, "R2"],
+    [2, 3, 0, 0, 5037, "R3"],
+    [3, 12, 0, 0, 2210, "R4"],
+    [4, 5, 0, 0, 637.5, "R5"],
+    [5, 9, 0, 0, 1000000, "R6"],
+    [9, 18, 0, 0, 12750000, "R7"],
+    [9, 10, 0, 0, 1000000, "R8"],
+    [10, 11, 0, 0, 4177.9, "R9"],
+    [4, 6, 0, 0, 522, "R10"],
+    [6, 14, 0, 0, 745.5, "R11"],
+    [6, 13, 0, 0, 15725000, "R12"],
+    [6, 7, 0, 0, 10200, "R13"],
+    [7, 8, 0, 0, 1000000, "R14"],
+    [8, 11, 0, 0, 4177.9, "R15"],
 ]
 
 # PRESSURES is a dictionary of known node : pressure values.
