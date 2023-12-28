@@ -112,7 +112,7 @@ INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(12, 31)) + ["DV1", 
 
 def main():
     network = avm.edges_to_graph(VESSELS)
-    flow, pressure, graph = avm.simulate(network, [], PRESSURES)
+    flow, pressure, _, graph = avm.simulate(network, [], PRESSURES)
     print(len(flow))
     flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
     flow = np.append(flow, 820.71 / 60)

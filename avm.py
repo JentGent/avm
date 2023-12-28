@@ -1,11 +1,8 @@
 from scipy.special import comb
 import random
 import networkx as nx
-import cupy as cp
 import numpy as np
 import matplotlib.pyplot as plt
-from itertools import islice
-from scipy.optimize import lsq_linear
 
 # ONLY_INTRANIDAL indicates whether or not to display extranidal nodes in the graph.
 ONLY_INTRANIDAL = False
@@ -19,7 +16,7 @@ MMHG_TO_DYNCM = 1333.22
 # ABS_PRESSURE indicates whether or not to display calculated absolute pressures.
 ABS_PRESSURE = False
 
-# When LABEL is True, the edge labels are displayed. When it is False, the flow and pressure information is displayed.
+# LABEL determines the labels. When LABEL is True, the edge labels are displayed. When it is False, the flow and pressure information is displayed.
 LABEL = False
 
 
@@ -39,9 +36,7 @@ def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, flo
     for edge in edges:
         next_node = edge[1]
         if "pressure" not in graph.nodes[next_node] and graph.edges[edge]["start"] == node:
-            next_pressure = pressure + \
-                graph.edges[edge]["Δpressure"] * \
-                (-1 if graph.edges[edge]["start"] == node else 1)
+            next_pressure = pressure + graph.edges[edge]["Δpressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
             pressure_forward(graph, next_node, next_pressure, pressures)
 
 
@@ -95,7 +90,7 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
     edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
     nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool)
     if LABEL:
-        edge_labels = {(edge[0], edge[1]): edge[2]["label"] for i, edge in enumerate(graph.edges(data=True))}
+        edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
     else:
         edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["Δpressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data=True)}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels)
@@ -119,12 +114,15 @@ def edges_to_graph(edges: list) -> nx.Graph:
     """
     graph = nx.Graph()
     graph.add_edges_from([(
-        edge[0], edge[1], {
+        edge[0],
+        edge[1],
+        {
             "start": edge[0], "end": edge[1],
             "radius": edge[2], "length": edge[3],
             "resistance": edge[4], "label": edge[5],
             "locked": True
-        }) for edge in edges])
+        }) for edge in edges
+    ])
     return graph
 
 
@@ -155,7 +153,7 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
     return graph
 
 
-def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -> tuple[np.ndarray, np.ndarray, nx.Graph]:
+def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -> tuple[np.ndarray, np.ndarray, list[tuple], nx.Graph]:
     """Simulates the nidus.
 
     Args:
@@ -168,6 +166,7 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
     Returns:
         flow: The calculated flow values.
         pressure: The calculated pressure gradients.
+        all_edges: The list of edges in the same order as the flow and pressure arrays.
         graph: The directed graph of flow and pressure.
     """
     flow, pressure, all_edges = get_Q_and_P(graph, p_ext)
@@ -175,23 +174,20 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
         calc_pressures(graph, p_ext)
 
     pnodes = [node for node in graph.nodes("pressure") if not ONLY_INTRANIDAL or node[0] in intranidal_nodes]
-    graph = nx.DiGraph(
-        [
-            (edge[2]["end" if edge[2]["flow"] < 0 else "start"], edge[2]["start" if edge[2]["flow"] < 0 else "end"],
-                {
-                    "radius": edge[2]["radius"],
-                    "length": edge[2]["length"],
-                    "resistance": edge[2]["resistance"],
-                    "label": edge[2]["label"],
-                    "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
-                    "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYNCM
-            }) for i, edge in enumerate(graph.edges(data=True))
-            if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
-        ]
-    )
-    graph.add_nodes_from(
-        [(node[0], {"pressure": node[1]}) for node in pnodes])
-    return flow, pressure, graph
+    graph = nx.DiGraph([(
+        edge[2]["end" if edge[2]["flow"] < 0 else "start"],
+        edge[2]["start" if edge[2]["flow"] < 0 else "end"],
+        {
+            "radius": edge[2]["radius"],
+            "length": edge[2]["length"],
+            "resistance": edge[2]["resistance"],
+            "label": edge[2]["label"],
+            "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
+            "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYNCM
+        }) for edge in graph.edges(data=True) if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
+    ])
+    graph.add_nodes_from([(node[0], {"pressure": node[1]}) for node in pnodes])
+    return flow, pressure, all_edges, graph
 
 
 def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
@@ -261,16 +257,12 @@ def get_Q_and_P(graph: nx.Graph, p_ext) -> tuple[np.ndarray, np.ndarray, list[tu
         pressure: The calculated pressure gradients.
         all_edges: A list of the edges in the same order as the flows and pressures.
     """
-    all_edges = [(edge[2]["start"], edge[2]["end"])
-                 for edge in graph.edges(data=True)]
+    all_edges = [(edge[2]["start"], edge[2]["end"]) for edge in graph.edges(data=True)]
     flow = calc_flow(graph, all_edges, p_ext)
 
     # flow = difference in pressure between ends / resistance
     # Hagen-Poiseuille equation
-    pressure = flow * np.array([graph.edges[edge]["resistance"]
-                               for edge in all_edges])
-    nx.set_edge_attributes(
-        graph, {edge: flow[i] for i, edge in enumerate(all_edges)}, "flow")
-    nx.set_edge_attributes(
-        graph, {edge: pressure[i] for i, edge in enumerate(all_edges)}, "Δpressure")
+    pressure = flow * np.array([graph.edges[edge]["resistance"] for edge in all_edges])
+    nx.set_edge_attributes(graph, {edge: flow[i] for i, edge in enumerate(all_edges)}, "flow")
+    nx.set_edge_attributes(graph, {edge: pressure[i] for i, edge in enumerate(all_edges)}, "Δpressure")
     return flow, pressure, all_edges
