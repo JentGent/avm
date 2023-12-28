@@ -16,161 +16,6 @@ VISCOSITY = 0.04
 # MMHG_TO_DYNCM is the conversion factor for converting between mmHg and dynes/cm^2.
 MMHG_TO_DYNCM = 1333.22
 
-# NODE_POS lists the positions of specific nodes in the graph.
-NODE_POS = {
-    1: [-1, 0.5],
-    2: [-0.5, 0.4],
-    3: [-0.25, 0],
-    4: [-0.5, 0.5],
-    5: [-0.25, 1],
-    6: [-0.15, 0.2],
-    7: [-0.15, 0.95],
-    8: [0.85, 0.95],
-    9: [0.5, 1],
-    10: [0.95, 1],
-    11: [1, 0],
-    12: [1, -0.5],
-    13: [0.5, -1],
-    14: [0.1875, -0.1],
-    15: [0.375, 0.1],
-    16: [0.5625, 0.3],
-    "CVP": [1, -1],
-    "SP": [-1, -1],
-    "AF1": [0, -0.5],
-    "AF2": [0, 0],
-    "AF3": [0, 0.5],
-    "AF4": [0.5, 0.5],
-    "DV1": [0.75, -0.85],
-    "DV2": [0.75, 0],
-    "DV3": [0.75, 0.4],
-}
-
-# VESSELS is formatted like [first node, second node, radius, length, resistance, label].
-VESSELS = [
-    # Cardiovasculature
-    [13, "SP", 0.75, 10, 32, "superior vena cava"],  # from heart up
-    ["SP", 1, 1, 10, 1, "aortic arch"],  # from brain to heart
-    [1, 2, 0.35, 10, 67.9, "SCA"],  # subclavian artery
-
-    # Head and neck vasculature
-    # Neck and extracranial circulation
-    [1, 4, 0.35, 10, 67.9, "CCA"],  # common cartid artery
-    [4, 5, 0.2, 10, 637.5, "ECA"],  # external carotid artery
-    # capillary bed data not given; arbitrary data
-    [5, 9, 0.01, 0.1, 1000000, ""],
-    [9, 10, 0.01, 0.1, 1000000, ""],
-    [10, 11, 0.125, 10, 4177.9, ""],
-    [12, "CVP", 0.4, 10, 79.7 / 2, "CVP"],  # central venous pressure
-    # i divided the length in 2; the original paper omits the CVP node in the model data; external pressure seems to have been defined separately from nodes?
-    ["CVP", 13, 0.4, 10, 79.7 / 2, "jugular veins"],
-    # Intracranial circulation
-    [4, 6, 0.25, 20, 522, "ICA"],  # internal carotid artery
-    [2, 3, 0.15, 25, 5037, "VA"],  # vertebral artery
-    [6, 7, 0.1, 10, 10200, ""],
-    [7, 8, 0.01, 0.1, 1000000, ""],
-    [8, 11, 0.125, 10, 4177.9, ""],
-    [11, 12, 0.25, 10, 261, "dural venous sinuses"],
-
-    # AVM vasculature
-    # Major arterial feeders
-    [3, "AF1", 0.125, 5.2, 2210, "PCA"],  # posterior cerebral artery
-    [6, "AF2", 0.15, 3.7, 745.5, "MCA"],  # middle cerebral artery
-    # Minor arterial feeders
-    [6, "AF3", 0.025, 3.7, 15725000, "ACA"],  # anterior cerebral artery
-    [9, "AF4", 0.0125, 3, 12750000, "TFA"],  # transdural feeding artery
-    # Fistulous nidus vessels
-    ["AF2", 14, 0.1, 4, 4080, ""],
-    [14, 15, 0.1, 4, 4080, ""],
-    [15, 16, 0.1, 4, 4080, ""],
-    [16, "DV2", 0.1, 4, 4080, ""],
-    # Draining veins
-    ["DV1", 11, 0.25, 5, 130.5, ""],
-    ["DV2", 11, 0.25, 5, 130.5, ""],
-    ["DV3", 11, 0.25, 5, 130.5, ""],
-]
-VESSELS = [
-    [1, 2, 0, 0, 67.9, "R1"],
-    [1, 4, 0, 0, 67.9, "R2"],
-    [2, 3, 0, 0, 5037, "R3"],
-    [3, 12, 0, 0, 2210, "R4"],
-    [4, 5, 0, 0, 637.5, "R5"],
-    [5, 9, 0, 0, 1000000, "R6"],
-    [9, 18, 0, 0, 12750000, "R7"],
-    [9, 10, 0, 0, 1000000, "R8"],
-    [10, 11, 0, 0, 4177.9, "R9"],
-    [4, 6, 0, 0, 522, "R10"],
-    [6, 14, 0, 0, 745.5, "R11"],
-    [6, 13, 0, 0, 15725000, "R12"],
-    [6, 7, 0, 0, 10200, "R13"],
-    [7, 8, 0, 0, 1000000, "R14"],
-    [8, 11, 0, 0, 4177.9, "R15"],
-    [13, 18, 0, 0, 81600, "R16"],
-    [13, 19, 0, 0, 81600, "R17"],
-    [14, 15, 0, 0, 81600, "R18"],
-    [14, 16, 0, 0, 4080, "R19"], # fistulous
-    [14, 17, 0, 0, 81600, "R20"],
-    [15, 19, 0, 0, 81600, "R21"],
-    [15, 20, 0, 0, 81600, "R22"],
-    [16, 20, 0, 0, 81600, "R23"],
-    [16, 21, 0, 0, 4080, "R24"], # fistulous
-    [17, 21, 0, 0, 81600, "R25"],
-    [17, 22, 0, 0, 81600, "R26"],
-    [12, 22, 0, 0, 81600, "R27"],
-    [12, 23, 0, 0, 81600, "R28"],
-    [23, 28, 0, 0, 81600, "R29"],
-    [22, 28, 0, 0, 81600, "R30"],
-    [22, 27, 0, 0, 81600, "R31"],
-    [21, 27, 0, 0, 4080, "R32"], # fistulous
-    [21, 26, 0, 0, 81600, "R33"],
-    [21, 26, 0, 0, 81600, "R34"],
-    [20, 25, 0, 0, 81600, "R35"],
-    [19, 25, 0, 0, 81600, "R36"],
-    [19, 24, 0, 0, 81600, "R37"],
-    [18, 24, 0, 0, 81600, "R38"],
-    [24, 29, 0, 0, 81600, "R39"],
-    [25, 29, 0, 0, 81600, "R40"],
-    [26, 29, 0, 0, 81600, "R41"],
-    [26, 30, 0, 0, 81600, "R42"],
-    [27, 30, 0, 0, 4080, "R43"], # fistulous
-    [28, 30, 0, 0, 81600, "R44"],
-    [29, 11, 0, 0, 130.5, "R45"],
-    [30, 11, 0, 0, 130.5, "R46"],
-    [11, 31, 0, 0, 267, "R47"],
-    [31, 32, 0, 0, 79.7, "R48"],
-    [32, "SP", 0, 0, 3.2, "R49"],
-    ["SP", 1, 0, 0, 1, "R50"],
-]
-
-# PRESSURES is a dictionary of known node : pressure values.
-PRESSURES = {
-    # "SP": 74 * MMHG_TO_DYNCM,
-    # "AF1": 47 * MMHG_TO_DYNCM,
-    # "AF2": 47 * MMHG_TO_DYNCM,
-    # "AF3": 50 * MMHG_TO_DYNCM,
-    # "AF4": 50 * MMHG_TO_DYNCM,
-    # "DV1": 17 * MMHG_TO_DYNCM,
-    # "DV2": 17 * MMHG_TO_DYNCM,
-    # "DV3": 17 * MMHG_TO_DYNCM,
-    # "CVP": 5 * MMHG_TO_DYNCM
-    
-    # (32, "SP"): 74 * MMHG_TO_DYNCM,
-    ("SP", 1): 74 * MMHG_TO_DYNCM,
-    (3, 12): 47 * MMHG_TO_DYNCM,
-    (6, 14): 47 * MMHG_TO_DYNCM,
-    (6, 13): 50 * MMHG_TO_DYNCM,
-    (9, 18): 50 * MMHG_TO_DYNCM,
-    (30, 11): 17 * MMHG_TO_DYNCM,
-    (29, 11): 17 * MMHG_TO_DYNCM,
-    (31, 32): 5 * MMHG_TO_DYNCM
-}
-
-# INTRANIDAL_NODES is a list of nodes in the nidus.
-INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + \
-    list(range(14, 14 + 19 - 4 - 3)) + ["DV1", "DV2", "DV3"]
-# INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(14, 17)) + ["DV1", "DV2", "DV3"]
-# INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4", "DV1", "DV2", "DV3"]
-# INTRANIDAL_NODES = []
-
 
 def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, float]):
     """Step through the graph to calculate absolute pressure.
@@ -207,23 +52,23 @@ def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
     #         pressure_forward(graph, node, pressure, pressures)
 
 
-def display(graph: nx.Graph, intranidal_nodes: list = [], flow=True):
+def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
     """Display the graph.
 
     Args:
         graph (nx.Graph): The graph.
         intranidal_nodes (list): The nodes in the nidus.
     """
-    pos = nx.spring_layout(graph, 1, NODE_POS, NODE_POS.keys())
+    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys())
 
     # Fix node positions
-    xs, ys = [coords[0] for node, coords in pos.items() if node not in NODE_POS], [
-        coords[1] for node, coords in pos.items() if node not in NODE_POS]
+    xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [
+        coords[1] for node, coords in pos.items() if node not in node_pos]
     if xs:
         mx, my = min(xs), min(ys)
         Mx, My = (max(xs) - mx) or 1, (max(ys) - my) or 1
         for node, coords in pos.items():
-            if node not in NODE_POS.keys():
+            if node not in node_pos.keys():
                 pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
     # Nodes
@@ -243,7 +88,7 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], flow=True):
     nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool)
     # edge_labels = { (edge[0], edge[1]): edge[2]["label"] for i, edge in enumerate(graph.edges(data = True)) }
     # edge_labels = { (edge[0], edge[1]): ((edge[2]["label"] + "\n") if edge[2]["label"] else "") + str(round(abs(flow[i, 0]), 3)) + "\n" + str(round(pressure[i, 0] * (-1 if flow[i, 0] < 0 else 1), 3)) for i, edge in enumerate(graph.edges(data = True)) }
-    edge_labels = { (edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["Δpressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data = True) }
+    edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["Δpressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data=True)}
     # edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in graph.edges(data=True)}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels)
     sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors), vmax=max(edge_colors)))
@@ -331,7 +176,7 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]):
                     "label": edge[2]["label"],
                     "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
                     "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYNCM
-                }) for i, edge in enumerate(graph.edges(data=True))
+            }) for i, edge in enumerate(graph.edges(data=True))
             if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
         ]
     )
@@ -382,29 +227,19 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext):
     for cycle in nx.cycle_basis(graph):  # nx.recursive_simple_cycles(graph)
         total_pressure = 0
         flow = [0 for _ in range(num_edges)]
-        eq = ""
         for i, node1 in enumerate(cycle):
             node2 = cycle[(i + 1) % len(cycle)]
             edge = (node1, node2)
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = graph.edges[edge]["resistance"]
-                eq += " + " + str(graph.edges[edge]["label"])
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -graph.edges[edge]["resistance"]
-                eq += " - " + str(graph.edges[edge]["label"])
-        eq += " ="
-        for i, node1 in enumerate(cycle):
-            node2 = cycle[(i + 1) % len(cycle)]
-            edge = (node1, node2)
             if edge in p_ext:
                 total_pressure += p_ext[edge]
-                eq += " + E" + str(graph.edges[edge]['label'])
             elif (node2, node1) in p_ext:
                 total_pressure -= p_ext[(node2, node1)]
-                eq += " - E" + str(graph.edges[edge]['label'])
-        print(eq)
         Rv.append(flow)
         ΔΔP.append(total_pressure)
         # ΔΔP.append(0)
@@ -454,26 +289,22 @@ def get_Q_and_P(graph: nx.Graph, p_ext):
     return flow, pressure, all_edges
 
 
-def main():
-    # graph = edges_to_graph(VESSELS)
-    # with_nidus = generate_nidus(graph, INTRANIDAL_NODES, 93)
-    with_nidus = edges_to_graph(VESSELS)
-    # flow, pressure, graph = simulate(with_nidus, INTRANIDAL_NODES, PRESSURES)
-    flow, pressure, graph = simulate(with_nidus, [], PRESSURES)
-    # Vessel flow range: (-5.521527839018588, 820.7097134384449)
-# Total flow through nidus (out): 812.4164476473522
-# Total flow through nidus (in): 812.4164476376232
-# Fistulous max flow: 638.8651971123282
-    print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
-    print(f"Average flow: {np.average(np.abs(flow * 60))} mL/min")
-    print(f"Total flow through nidus (out): {graph[29][11]['flow'] + graph[30][11]['flow']} mL/min")
-    print(f"Total flow through nidus (in): {graph[3][12]['flow'] + graph[6][14]['flow'] + graph[6][13]['flow'] + graph[9][18]['flow']} mL/min")
-    print(f"Fistulous flow range: ({min(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}, {max(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}) mL/min")
-    print(f"Minimum pressure: {np.min(np.abs(pressure / MMHG_TO_DYNCM))}")
-    print(f"Maximum pressure: {np.max(np.abs(pressure / MMHG_TO_DYNCM))}")
-    print(f"Average pressure: {np.average(np.abs(pressure / MMHG_TO_DYNCM))}")
-    display(graph, INTRANIDAL_NODES)
+def unique_with_tolerance(array, tolerance):
+    """
+    Removes approximate duplicates within a certain tolerance.
 
+    Parameters:
+    - array: numpy array from which to remove approximate duplicates
+    - tolerance: the margin of error for precision
 
-if __name__ == "__main__":
-    main()
+    Returns:
+    - unique_values: numpy array with approximate duplicates removed
+    """
+    # Round the array to the nearest multiple of the tolerance
+    rounded_array = np.round(array / tolerance) * tolerance
+    # Find the unique values in the rounded array
+    unique_values, unique_indices = np.unique(rounded_array, return_index=True)
+    # Map back to the original values by using the indices
+    original_values = array[unique_indices]
+
+    return original_values

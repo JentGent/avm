@@ -102,21 +102,21 @@ def main():
     ])
 
     flows, r, N, rank = np.linalg.lstsq(Rv, ddP.T)
-
     print(f"Flows shape: {flows.shape}")
     print(f"Error: {r}")
     print(f"Flows: {np.round(flows * 60, 3)}")
-    print(f"Vessel flow range: {np.min(flows) * 60, np.max(flows) * 60} mL/min")
-    print(f"Average flow: {np.average(flows) * 60} mL/min")
+    print(f"Vessel flow range: {np.min(np.abs(flows)) * 60, np.max(np.abs(flows)) * 60} mL/min")
+    print(f"Average flow: {np.average(np.abs(flows)) * 60} mL/min")
     print(f"Total flow through nidus (out): {(flows[37] + flows[38]) * 60} mL/min")
     print(f"Total flow through nidus (in): {(flows[3] + flows[7] + flows[6] + flows[0]) * 60} mL/min")
     print(f"Fistulous flow range: ({min(flows[12], flows[17], flows[24], flows[35]) * 60}, {max(flows[12], flows[17], flows[24], flows[35]) * 60}) mL/min")
 
-# Vessel flow range: (-5.521527839018588, 820.7097134384449) mL/min
-# Average flow: 191.81053130458395 mL/min
+# Vessel flow range: (0.439322069672098, 820.7097134384449) mL/min
+# Average flow: 192.07987412599945 mL/min
 # Total flow through nidus (out): 812.4164476473522 mL/min
 # Total flow through nidus (in): 812.4164476376232 mL/min
 # Fistulous flow range: (595.2160496415968, 638.8651971123282) mL/min
+
 
 if __name__ == "__main__":
     main()
