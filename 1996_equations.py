@@ -69,7 +69,6 @@ EQS = [
     [{22: 1, 23: 1, 37: -1}, 0],  # 28
     [{32: 1, 33: 1, 34: 1, 38: -1}, 0],  # 29
     [{35: 1, 36: 1, 37: 1, 39: -1}, 0],  # 30
-    # [{41: 1, 40: -1}, 0],  # 30
 
     [{3: R[5] + R[6], 4: R[7], 10: -R[16], 8: -R[12], 6: -R[10]}, E['AF4'] - E['AF3']],  # 1
     [{5: R[8] + R[9], 38: -R[45], 32: -R[39], 31: -R[38], 4: -R[7]}, -E["DV2"] - E["AF4"]],  # 2
@@ -88,7 +87,7 @@ EQS = [
     [{26: R[33], 35: R[42], 36: -R[43], 25: -R[32]}, 0],  # 15
     [{24: R[31], 36: R[43], 37: -R[44], 23: -R[30]}, 0],  # 16
     [{34: R[41], 38: R[45], 39: -R[46], 35: -R[42]}, E["DV2"] - E["DV1"]],  # 17
-    [{1: R[1] + R[3] + R[4], 22: R[28] + R[29], 37: R[44], 39: R[46], 40: R[47] + R[48] + R[49], 41: R[50]}, E["AF1"] + E["DV1"] + E["CVP"] + E["SP"]]
+    [{1: R[1] + R[3] + R[4], 22: R[28] + R[29], 37: R[44], 39: R[46], 40: R[47] + R[48] + R[49], 41: R[50]}, E["AF1"] + E["DV1"] + E["CVP"] + E["SP"]] # 18
 ]
 
 
@@ -111,11 +110,13 @@ def main():
     print(f"Total flow through nidus (in): {(flows[3] + flows[7] + flows[6] + flows[0]) * 60} mL/min")
     print(f"Fistulous flow range: ({min(flows[12], flows[17], flows[24], flows[35]) * 60}, {max(flows[12], flows[17], flows[24], flows[35]) * 60}) mL/min")
 
-# Vessel flow range: (0.439322069672098, 820.7097134384449) mL/min
-# Average flow: 192.07987412599945 mL/min
-# Total flow through nidus (out): 812.4164476473522 mL/min
-# Total flow through nidus (in): 812.4164476376232 mL/min
-# Fistulous flow range: (595.2160496415968, 638.8651971123282) mL/min
+"""
+Vessel flow range: (0.439322069672098, 820.7097134384449) mL/min
+Average flow: 192.07987412599945 mL/min
+Total flow through nidus (out): 812.4164476473522 mL/min
+Total flow through nidus (in): 812.4164476376232 mL/min
+Fistulous flow range: (595.2160496415968, 638.8651971123282) mL/min
+"""
 
 
 if __name__ == "__main__":
