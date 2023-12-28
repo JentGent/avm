@@ -107,12 +107,12 @@ VESSELS = [
     [13, 18, 0, 0, 81600, "R16"],
     [13, 19, 0, 0, 81600, "R17"],
     [14, 15, 0, 0, 81600, "R18"],
-    [14, 16, 0, 0, 81600, "R19"],
+    [14, 16, 0, 0, 4080, "R19"], # fistulous
     [14, 17, 0, 0, 81600, "R20"],
     [15, 19, 0, 0, 81600, "R21"],
     [15, 20, 0, 0, 81600, "R22"],
     [16, 20, 0, 0, 81600, "R23"],
-    [16, 21, 0, 0, 81600, "R24"],
+    [16, 21, 0, 0, 4080, "R24"], # fistulous
     [17, 21, 0, 0, 81600, "R25"],
     [17, 22, 0, 0, 81600, "R26"],
     [12, 22, 0, 0, 81600, "R27"],
@@ -136,7 +136,7 @@ VESSELS = [
     [29, 11, 0, 0, 130.5, "R45"],
     [30, 11, 0, 0, 130.5, "R46"],
     [11, 31, 0, 0, 267, "R47"],
-    [31, 32, 0, 0, 79.7, "R48"]
+    [31, 32, 0, 0, 79.7, "R48"],
     [32, "SP", 0, 0, 3.2, "R49"],
     ["SP", 1, 0, 0, 1, "R50"],
 ]
@@ -370,6 +370,11 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext):
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -1
+        # eq = ""
+        # for j, coeff in enumerate(flow):
+        #     if coeff is 1:  eq += " + i" + str(j)
+        #     if coeff is -1: eq += " - i" + str(j)
+        # print(eq + " = 0")
         Rv.append(flow)
 
     # Second law: total pressure change after traversing any closed loop is 0
@@ -377,19 +382,29 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext):
     for cycle in nx.cycle_basis(graph):  # nx.recursive_simple_cycles(graph)
         total_pressure = 0
         flow = [0 for _ in range(num_edges)]
+        eq = ""
         for i, node1 in enumerate(cycle):
             node2 = cycle[(i + 1) % len(cycle)]
             edge = (node1, node2)
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = graph.edges[edge]["resistance"]
+                eq += " + " + str(graph.edges[edge]["label"])
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -graph.edges[edge]["resistance"]
+                eq += " - " + str(graph.edges[edge]["label"])
+        eq += " ="
+        for i, node1 in enumerate(cycle):
+            node2 = cycle[(i + 1) % len(cycle)]
+            edge = (node1, node2)
             if edge in p_ext:
                 total_pressure += p_ext[edge]
+                eq += " + E" + str(graph.edges[edge]['label'])
             elif (node2, node1) in p_ext:
                 total_pressure -= p_ext[(node2, node1)]
+                eq += " - E" + str(graph.edges[edge]['label'])
+        print(eq)
         Rv.append(flow)
         ΔΔP.append(total_pressure)
         # ΔΔP.append(0)
@@ -440,12 +455,20 @@ def get_Q_and_P(graph: nx.Graph, p_ext):
 
 
 def main():
-    graph = edges_to_graph(VESSELS)
-    with_nidus = generate_nidus(graph, INTRANIDAL_NODES, 93)
-    flow, pressure, graph = simulate(with_nidus, INTRANIDAL_NODES, PRESSURES)
-    print(f"Minimum flow: {np.min(np.abs(flow * 60))} mL/min")
-    print(f"Maximum flow: {np.max(np.abs(flow * 60))} mL/min")
+    # graph = edges_to_graph(VESSELS)
+    # with_nidus = generate_nidus(graph, INTRANIDAL_NODES, 93)
+    with_nidus = edges_to_graph(VESSELS)
+    # flow, pressure, graph = simulate(with_nidus, INTRANIDAL_NODES, PRESSURES)
+    flow, pressure, graph = simulate(with_nidus, [], PRESSURES)
+    # Vessel flow range: (-5.521527839018588, 820.7097134384449)
+# Total flow through nidus (out): 812.4164476473522
+# Total flow through nidus (in): 812.4164476376232
+# Fistulous max flow: 638.8651971123282
+    print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
     print(f"Average flow: {np.average(np.abs(flow * 60))} mL/min")
+    print(f"Total flow through nidus (out): {graph[29][11]['flow'] + graph[30][11]['flow']} mL/min")
+    print(f"Total flow through nidus (in): {graph[3][12]['flow'] + graph[6][14]['flow'] + graph[6][13]['flow'] + graph[9][18]['flow']} mL/min")
+    print(f"Fistulous flow range: ({min(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}, {max(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}) mL/min")
     print(f"Minimum pressure: {np.min(np.abs(pressure / MMHG_TO_DYNCM))}")
     print(f"Maximum pressure: {np.max(np.abs(pressure / MMHG_TO_DYNCM))}")
     print(f"Average pressure: {np.average(np.abs(pressure / MMHG_TO_DYNCM))}")
