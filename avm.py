@@ -10,14 +10,17 @@ ONLY_INTRANIDAL = False
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.04
 
-# MMHG_TO_DYNCM is the conversion factor for converting between mmHg and dynes/cm^2.
-MMHG_TO_DYNCM = 1333.22
+# x mmHg = x * MMHG_TO_DYNCM dyn/cm^2.
+MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
 
 # ABS_PRESSURE indicates whether or not to display calculated absolute pressures.
 ABS_PRESSURE = False
 
 # LABEL determines the labels. When LABEL is True, the edge labels are displayed. When it is False, the flow and pressure information is displayed.
-LABEL = False
+LABEL = True
+
+# FLOWS determines the color scheme. When FLOWS is True, the colors of edges represent the flows. When it is False, the colors represent the pressures.
+FLOWS = True
 
 
 def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, float]):
@@ -84,22 +87,30 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
 
     # Edges
     pressures = [edge[2]["Δpressure"] for edge in graph.edges(data=True)]
-    min_pressure = min(pressures)
-    max_pressure = max(pressures)
-    edge_widths = [np.interp(edge[2]["Δpressure"], [min_pressure, max_pressure], [0.5, 5]) for edge in graph.edges(data=True)]
-    edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
-    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool)
+    flows = [edge[2]["flow"] for edge in graph.edges(data=True)]
+    min_pressure, max_pressure = min(pressures), max(pressures)
+    min_flow, max_flow = min(flows), max(flows)
+
+    if FLOWS:
+        edge_widths = [np.interp(edge[2]["Δpressure"], [min_pressure, max_pressure], [0.5, 5]) for edge in graph.edges(data=True)]
+        edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
+    else:
+        edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [0.5, 5]) for edge in graph.edges(data=True)]
+        edge_colors = [edge[2]["Δpressure"] for edge in graph.edges(data=True)]
+    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if FLOWS else plt.cm.Reds)
     if LABEL:
         edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
     else:
         edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["Δpressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data=True)}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels)
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors), vmax=max(edge_colors)))
-    sm.set_array([])
-    plt.colorbar(sm, label="Flow (mL/min)")
-    sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure, vmax=max_pressure))
-    sm.set_array([])
-    plt.colorbar(sm, label="Pressure (mm Hg)")
+    if FLOWS:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors), vmax=max(edge_colors)))
+        sm.set_array([])
+        plt.colorbar(sm, label="Flow (mL/min)")
+    else:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure, vmax=max_pressure))
+        sm.set_array([])
+        plt.colorbar(sm, label="Pressure (mm Hg)")
     plt.show()
 
 
@@ -117,10 +128,13 @@ def edges_to_graph(edges: list) -> nx.Graph:
         edge[0],
         edge[1],
         {
-            "start": edge[0], "end": edge[1],
-            "radius": edge[2], "length": edge[3],
-            "resistance": edge[4], "label": edge[5],
-            "locked": True
+            "start": edge[0],
+            "end": edge[1],
+            "radius": edge[2],
+            "length": edge[3],
+            "resistance": edge[4],
+            "label": edge[5],
+            "fistulous": edge[6] if len(edge) > 6 else False
         }) for edge in edges
     ])
     return graph
@@ -141,15 +155,40 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
     probability = num_expected_edges / comb(num_intranidal_verts, 2)
     graph = graph.copy()
     for j in range(num_intranidal_verts - 1):
-        for k in range(j + 1, num_intranidal_verts):
-            if random.random() < probability:
-                radius, length = random.random() * (0.5 - 0.05) + 0.05, random.random() * (5 - 1) + 1
-                graph.add_edge(
-                    intranidal_nodes[j], intranidal_nodes[k],
-                    start=intranidal_nodes[j], end=intranidal_nodes[k],
-                    radius=radius, length=length,
-                    resistance=8 * VISCOSITY / np.pi * length / (radius ** 4), label=""
-                )
+        for i in range(2):
+            unconnected = [node for node in intranidal_nodes if not graph.has_edge(intranidal_nodes[j], node) and node is not intranidal_nodes[j]]
+            node = random.choice(unconnected)
+            # radius, length = random.normalvariate(0.05, 0.01), random.normalvariate(5, 1)
+            radius, length = 0.05, 5
+            graph.add_edge(
+                intranidal_nodes[j],
+                node,
+                start=intranidal_nodes[j],
+                end=node,
+                radius=radius,
+                length=length,
+                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
+                resistance=81600,
+                label="",
+                plexiform=True
+            )
+
+        # for k in range(j + 1, num_intranidal_verts):
+        #     if random.random() < probability:
+        #         # radius, length = random.normalvariate(0.05, 0.01), random.normalvariate(5, 1)
+        #         radius, length = 0.05, 5
+        #         graph.add_edge(
+        #             intranidal_nodes[j],
+        #             intranidal_nodes[k],
+        #             start=intranidal_nodes[j],
+        #             end=intranidal_nodes[k],
+        #             radius=radius,
+        #             length=length,
+        #             # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
+        #             resistance=81600,
+        #             label="",
+        #             plexiform=True
+        #         )
     return graph
 
 
@@ -183,7 +222,9 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
             "resistance": edge[2]["resistance"],
             "label": edge[2]["label"],
             "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
-            "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYNCM
+            "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYN_PER_SQUARE_CM,
+            "plexiform": edge[2]["plexiform"] if "plexiform" in edge[2] else False,
+            "fistulous": edge[2]["fistulous"] if "fistulous" in edge[2] else False,
         }) for edge in graph.edges(data=True) if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
     ])
     graph.add_nodes_from([(node[0], {"pressure": node[1]}) for node in pnodes])
@@ -207,8 +248,8 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
 
     # First law: sum of flow towards each node is 0
     ΔΔP = [0 for i in range(graph.number_of_nodes())]
-    for i in graph.nodes():
-        edges = graph.edges([i])
+    for i, node in enumerate(graph.nodes()):
+        edges = graph.edges([node])
         flow = [0 for _ in range(num_edges)]
         for edge in edges:
             if edge in all_edges:
@@ -241,7 +282,7 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
         ΔΔP.append(total_pressure)
 
     result = np.linalg.lstsq(np.array(Rv), np.array([ΔΔP]).T, rcond=None)
-    print(result[1])
+    print(f"Error: {result[1]}")
     return result[0].flatten()
 
 

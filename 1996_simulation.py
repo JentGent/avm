@@ -40,7 +40,7 @@ NODE_POS = {
     "SP": [22, -544],
 }
 
-# VESSELS is formatted like [first node, second node, radius, length, resistance, label].
+# VESSELS is formatted like [first node, second node, radius, length, resistance, label, fistulous (optional)].
 VESSELS = [
     [1, 2, 0, 0, 67.9, "R1"],
     [1, 4, 0, 0, 67.9, "R2"],
@@ -60,12 +60,12 @@ VESSELS = [
     [13, 18, 0, 0, 81600, "R16"],
     [13, 19, 0, 0, 81600, "R17"],
     [14, 15, 0, 0, 81600, "R18"],
-    [14, 16, 0, 0, 4080, "R19"],  # Fistulous
+    [14, 16, 0, 0, 4080, "R19", True],  # Fistulous
     [14, 17, 0, 0, 81600, "R20"],
     [15, 19, 0, 0, 81600, "R21"],
     [15, 20, 0, 0, 81600, "R22"],
     [16, 20, 0, 0, 81600, "R23"],
-    [16, 21, 0, 0, 4080, "R24"],  # Fistulous
+    [16, 21, 0, 0, 4080, "R24", True],  # Fistulous
     [17, 21, 0, 0, 81600, "R25"],
     [17, 22, 0, 0, 81600, "R26"],
     [12, 22, 0, 0, 81600, "R27"],
@@ -73,7 +73,7 @@ VESSELS = [
     [23, 28, 0, 0, 81600, "R29"],
     [22, 28, 0, 0, 81600, "R30"],
     [22, 27, 0, 0, 81600, "R31"],
-    [21, 27, 0, 0, 4080, "R32"],  # Fistulous
+    [21, 27, 0, 0, 4080, "R32", True],  # Fistulous
     [21, 26, 0, 0, 81600, "R33"],
     [20, 26, 0, 0, 81600, "R34"],
     [20, 25, 0, 0, 81600, "R35"],
@@ -84,7 +84,7 @@ VESSELS = [
     [25, 29, 0, 0, 81600, "R40"],
     [26, 29, 0, 0, 81600, "R41"],
     [26, 30, 0, 0, 81600, "R42"],
-    [27, 30, 0, 0, 4080, "R43"],  # Fistulous
+    [27, 30, 0, 0, 4080, "R43", True],  # Fistulous
     [28, 30, 0, 0, 81600, "R44"],
     [29, 11, 0, 0, 130.5, "R45"],
     [30, 11, 0, 0, 130.5, "R46"],
@@ -96,14 +96,14 @@ VESSELS = [
 
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
-    (32, "SP"): 74 * avm.MMHG_TO_DYNCM,
-    (3, 12): 47 * avm.MMHG_TO_DYNCM,
-    (6, 14): 47 * avm.MMHG_TO_DYNCM,
-    (6, 13): 50 * avm.MMHG_TO_DYNCM,
-    (9, 18): 50 * avm.MMHG_TO_DYNCM,
-    (30, 11): 17 * avm.MMHG_TO_DYNCM,
-    (29, 11): 17 * avm.MMHG_TO_DYNCM,
-    (31, 32): 5 * avm.MMHG_TO_DYNCM
+    (32, "SP"): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (3, 12): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (6, 14): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (6, 13): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (9, 18): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (30, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (29, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (31, 32): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
 }
 
 # INTRANIDAL_NODES is a list of nodes in the nidus.
@@ -113,10 +113,28 @@ INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(12, 31)) + ["DV1", 
 def main():
     network = avm.edges_to_graph(VESSELS)
     flow, pressure, _, graph = avm.simulate(network, [], PRESSURES)
-    print(len(flow))
+    print(f"Number of flow values before removing duplicates: {flow.shape}")
     flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
     flow = np.append(flow, 820.71 / 60)
-    print(len(flow))
+    print(f"After: {flow.shape}")
+
+    fistulous = [edge[2] for edge in graph.edges(data=True) if edge[2]["resistance"] == 4080]
+    fistulous_pressures = [edge["Δpressure"] for edge in fistulous]
+    fistulous_flows = [edge["flow"] for edge in fistulous]
+    print(f"Number of fistulous vessels: {len(fistulous)}")
+    print(f"Fistulous flow range: ({min(fistulous_flows)}, {max(fistulous_flows)}) mL/min")
+    print(f"Fistulous flow average: {np.average(fistulous_flows)} mL/min")
+    print(f"Fistulous pressure range: ({min(fistulous_pressures)}, {max(fistulous_pressures)}) mmHg")
+    print(f"Fistulous pressure average: ({np.average(fistulous_pressures)}) mmHg")
+
+    plexiform = [edge[2] for edge in graph.edges(data=True) if edge[2]["resistance"] == 81600]
+    plexiform_pressures = [edge["Δpressure"] for edge in plexiform]
+    plexiform_flows = [edge["flow"] for edge in plexiform]
+    print(f"Number of plexiform vessels: {len(plexiform)}")
+    print(f"Plexiform flow range: ({min(plexiform_flows)}, {max(plexiform_flows)}) mL/min")
+    print(f"Plexiform flow average: {np.average(plexiform_flows)} mL/min")
+    print(f"Plexiform pressure range: ({min(plexiform_pressures)}, {max(plexiform_pressures)}) mmHg")
+    print(f"Plexiform pressure average: ({np.average(plexiform_pressures)}) mmHg")
 
     print(f"Flows: {np.round(flow * 60, 3)}")
     print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
@@ -124,9 +142,9 @@ def main():
     print(f"Total flow through nidus (out): {graph[29][11]['flow'] + graph[30][11]['flow']} mL/min")
     print(f"Total flow through nidus (in): {graph[3][12]['flow'] + graph[6][14]['flow'] + graph[6][13]['flow'] + graph[9][18]['flow']} mL/min")
     print(f"Fistulous flow range: ({min(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}, {max(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}) mL/min")
-    print(f"Minimum pressure: {np.min(np.abs(pressure / avm.MMHG_TO_DYNCM))}")
-    print(f"Maximum pressure: {np.max(np.abs(pressure / avm.MMHG_TO_DYNCM))}")
-    print(f"Average pressure: {np.average(np.abs(pressure / avm.MMHG_TO_DYNCM))}")
+    print(f"Minimum pressure: {np.min(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
+    print(f"Maximum pressure: {np.max(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
+    print(f"Average pressure: {np.average(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
 
 
