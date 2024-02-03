@@ -106,11 +106,11 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
     if FLOWS:
         sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors), vmax=max(edge_colors)))
         sm.set_array([])
-        plt.colorbar(sm, label="Flow (mL/min)")
+        plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
     else:
         sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure, vmax=max_pressure))
         sm.set_array([])
-        plt.colorbar(sm, label="Pressure (mm Hg)")
+        plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
     plt.show()
 
 
@@ -139,9 +139,8 @@ def edges_to_graph(edges: list) -> nx.Graph:
     ])
     return graph
 
-
-def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int) -> nx.Graph:
-    """Generates a new graph with a random nidus from a given graph and its intranidal nodes.
+def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
+    """Generates a new graph with a random nidus from a given graph and its intranidal nodes by going through each node and connecting it to two other new intranidal nodes.
 
     Args:
         graph: The original graph.
@@ -152,7 +151,6 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
         graph: The graph with a random nidus formation.
     """
     num_intranidal_verts = len(intranidal_nodes)
-    probability = num_expected_edges / comb(num_intranidal_verts, 2)
     graph = graph.copy()
     for j in range(num_intranidal_verts - 1):
         for i in range(2):
@@ -172,23 +170,39 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
                 label="",
                 plexiform=True
             )
+    return graph
 
-        # for k in range(j + 1, num_intranidal_verts):
-        #     if random.random() < probability:
-        #         # radius, length = random.normalvariate(0.05, 0.01), random.normalvariate(5, 1)
-        #         radius, length = 0.05, 5
-        #         graph.add_edge(
-        #             intranidal_nodes[j],
-        #             intranidal_nodes[k],
-        #             start=intranidal_nodes[j],
-        #             end=intranidal_nodes[k],
-        #             radius=radius,
-        #             length=length,
-        #             # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
-        #             resistance=81600,
-        #             label="",
-        #             plexiform=True
-        #         )
+def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int) -> nx.Graph:
+    """Generates a new graph with a random nidus from a given graph and its intranidal nodes.
+
+    Args:
+        graph: The original graph.
+        intranidal_nodes: List of the nodes between which to generate edges.
+        num_expected_edges: Expected number of edges to generate.
+
+    Returns:
+        graph: The graph with a random nidus formation.
+    """
+    num_intranidal_verts = len(intranidal_nodes)
+    probability = num_expected_edges / comb(num_intranidal_verts, 2)
+    graph = graph.copy()
+    for j in range(num_intranidal_verts - 1):
+        for k in range(j + 1, num_intranidal_verts):
+            if random.random() < probability:
+                # radius, length = random.normalvariate(0.05, 0.01), random.normalvariate(5, 1)
+                radius, length = 0.05, 5
+                graph.add_edge(
+                    intranidal_nodes[j],
+                    intranidal_nodes[k],
+                    start=intranidal_nodes[j],
+                    end=intranidal_nodes[k],
+                    radius=radius,
+                    length=length,
+                    # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
+                    resistance=81600,
+                    label="",
+                    plexiform=True
+                )
     return graph
 
 
