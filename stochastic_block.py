@@ -1,7 +1,9 @@
-"""Generates a random nidus."""
+"""Uses a stochastic block model to randomly generate a nidus."""
 
 import avm
 import numpy as np
+from scipy.special import comb
+import scipy.optimize as spop
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -74,6 +76,11 @@ VESSELS = [
     [21, 11, 0.25, 5, 130.5, ""],
     [22, 11, 0.25, 5, 130.5, ""],
     [23, 11, 0.25, 5, 130.5, ""],
+
+    [14, 24, 0.05, 5, 81600, ""],
+    [15, 25, 0.05, 5, 81600, ""],
+    [16, 26, 0.05, 5, 81600, ""],
+    [17, 27, 0.05, 5, 81600, ""],
 ]
 
 # PRESSURES is a dictionary of known node : pressure values.
@@ -95,10 +102,97 @@ NUM_INTRANIDAL_NODES = 57
 # INTRANIDAL_NODES is a list of nodes in the nidus.
 INTRANIDAL_NODES = list(range(14, 14 + NUM_INTRANIDAL_NODES))
 
+def calc_expected_edges(p, sizes):
+    n = 0
+    index = 0
+    for i in range(len(sizes)):
+        n += p[index] * sizes[i] * (sizes[i] - 1) / 2
+        index += 1
+        for j in range(i + 1, len(sizes)):
+            n += p[index] * sizes[i] * sizes[j]
+            index += 1
+    return n
+def zero_p(res, sizes):
+    p = []
+    index = 0
+    reach = 2
+    AF, FI, DV = 0, 1, 2
+    for block1 in range(len(sizes)):
+        for block2 in range(block1, len(sizes)):
+            if block1 == AF:
+                p.append(0)
+                # if block2 not in [AF, FI, DV] and block2 in range(2 - reach, 2 + reach + 1):
+                #     p.append(res[index])
+                #     index += 1
+                # else: p.append(0)
+            elif block1 == FI:
+                if block2 not in [FI, DV]:
+                    p.append(res[index])
+                    index += 1
+                else: p.append(0)
+            elif block1 == DV:
+                if block2 not in [DV] and block2 >= len(sizes) - reach:
+                    p.append(res[index])
+                    index += 1
+                else: p.append(0)
+            else:
+                if block2 in range(block1 - reach, block1 + reach + 1):
+                    p.append(res[index])
+                    index += 1
+                else: p.append(0)
+    return p
+def generate_stochastic_matrix(sizes: list[int], num_expected_edges: int):
+    p = []
+    t = num_expected_edges / comb(sum(sizes), 2)
+    reach = 2
+    AF, FI, DV = 0, 1, 2
+    index = 0
+    bias = []
+    for block1 in range(len(sizes)):
+        for block2 in range(block1, len(sizes)):
+            if block1 == AF:
+                do_nothing = 0
+                # if block2 not in [AF, FI, DV] and block2 in range(2 - reach, 2 + reach + 1):
+                #     p.append(t / ((2 - block1) ** 4 + 1))
+                #     bias.append([index, -(reach / 2) ** 4 + (block2 - 2) ** 4])
+                #     index += 1
+            elif block1 == FI:
+                if block2 not in [FI, DV]:
+                    p.append(0.2)
+                    index += 1
+            elif block1 == DV:
+                if block2 not in [DV] and block2 >= len(sizes) - reach:
+                    p.append(t / ((block2 - len(sizes)) ** 4 + 1))
+                    bias.append([index, -(reach / 2) ** 4 + (block2 - len(sizes)) ** 4])
+                    index += 1
+            else:
+                if block2 in range(block1 - reach, block1 + reach + 1):
+                    p.append(t / ((block2 - block1) ** 4 + 1))
+                    bias.append([index, -(reach / 2) ** 4 + (block2 - block1) ** 4])
+                    index += 1
+    res = spop.minimize(lambda x: (calc_expected_edges(zero_p(x, sizes), sizes) - num_expected_edges) ** 2 + sum([x[i] * a for i, a in bias]), p, bounds = spop.Bounds(0, 1))
+    print(res)
+    p = zero_p(res.x, sizes)
+    print(calc_expected_edges(p, sizes))
+    index = 0
+    matrix = []
+    for block1, size1 in enumerate(sizes):
+        matrix.append([])
+        for block2, size2 in enumerate(sizes[:block1]):
+            matrix[block1].append(matrix[block2][block1])
+        for block2, size2 in enumerate(sizes[block1:]):
+            matrix[block1].append(p[index])
+            index += 1
+    print(np.array(matrix))
+    return matrix
 
 def main():
     network = avm.edges_to_graph(VESSELS)
-    network = avm.generate_nidus(network, INTRANIDAL_NODES, 1000)
+    # network = avm.generate_nidus(network, INTRANIDAL_NODES, 1000)
+    # 47
+    blocks = [4, 3, 3] + [10, 10, 10, 10, 7]
+    network = avm.generate_nidus_stochastic(network, INTRANIDAL_NODES, blocks, generate_stochastic_matrix(blocks, 1000))
+    # network = avm.generate_nidus_linear(network, INTRANIDAL_NODES)
     flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
 
     # print(f"Number of flow values: {flow.shape}")

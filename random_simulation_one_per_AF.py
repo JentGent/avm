@@ -22,17 +22,20 @@ NODE_POS = {
     15: [0, 0], # AF2
     16: [0, 0.5], # AF3
     17: [0.5, 0.5], # AF4
-
-    18: [0.1875, -0.1], # Fistulous
-    19: [0.375, 0.1],
-    20: [0.5625, 0.2],
     
-    21: [0.75, -0.85], # DV1
-    22: [0.75, 0], # DV2
-    23: [0.75, 0.4], # DV3
+    18: [0.75, -0.85], # DV1
+    19: [0.75, 0], # DV2
+    20: [0.75, 0.4], # DV3
+
+    21: [0.1875, -0.1], # Fistulous
+    22: [0.375, 0.1],
+    23: [0.5625, 0.2],
 
     "SP": [-1, -1],
 }
+
+# NUM_INTRANIDAL_NODES is the number of intranidal nodes. (minimum 10)
+NUM_INTRANIDAL_NODES = 57
 
 # VESSELS is formatted like [first node, second node, radius, length, resistance, label, fistulous (optional)].
 VESSELS = [
@@ -66,14 +69,23 @@ VESSELS = [
     [6, 16, 0.025, 3.7, 15725000, "ACA"],  # anterior cerebral artery
     [9, 17, 0.0125, 3, 12750000, "TFA"],  # transdural feeding artery
     # Fistulous nidus vessels
-    [15, 18, 0.1, 4, 40800, "", True],
-    [18, 19, 0.1, 4, 40800, "", True],
-    [19, 20, 0.1, 4, 40800, "", True],
-    [20, 22, 0.1, 4, 40800, "", True],
+    [15, 21, 0.1, 4, 40800, "", True],
+    [21, 22, 0.1, 4, 40800, "", True],
+    [22, 23, 0.1, 4, 40800, "", True],
+    [23, 19, 0.1, 4, 40800, "", True],
     # Draining veins
-    [21, 11, 0.25, 5, 130.5, ""],
-    [22, 11, 0.25, 5, 130.5, ""],
-    [23, 11, 0.25, 5, 130.5, ""],
+    [18, 11, 0.25, 5, 130.5, ""],
+    [19, 11, 0.25, 5, 130.5, ""],
+    [20, 11, 0.25, 5, 130.5, ""],
+
+    [14, 24, 0.05, 5, 81600, ""],
+    [15, 25, 0.05, 5, 81600, ""],
+    [16, 26, 0.05, 5, 81600, ""],
+    [17, 27, 0.05, 5, 81600, ""],
+
+    [21 + NUM_INTRANIDAL_NODES - 1, 18, 0.05, 5, 81600, ""],
+    [21 + NUM_INTRANIDAL_NODES - 2, 19, 0.05, 5, 81600, ""],
+    [21 + NUM_INTRANIDAL_NODES - 3, 20, 0.05, 5, 81600, ""],
 ]
 
 # PRESSURES is a dictionary of known node : pressure values.
@@ -83,17 +95,14 @@ PRESSURES = {
     (6, 15): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (6, 16): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (9, 17): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (21, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (22, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (23, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (18, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (19, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (20, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
 }
 
-# NUM_INTRANIDAL_NODES is the number of intranidal nodes. (minimum 10)
-NUM_INTRANIDAL_NODES = 57
-
 # INTRANIDAL_NODES is a list of nodes in the nidus.
-INTRANIDAL_NODES = list(range(14, 14 + NUM_INTRANIDAL_NODES))
+INTRANIDAL_NODES = list(range(21, 21 + NUM_INTRANIDAL_NODES))
 
 
 def main():
@@ -106,7 +115,7 @@ def main():
     # print(f"Flows: {np.round(flow * 60, 3)}")
     print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
     print(f"Average flow: {np.average(np.abs(flow * 60))} mL/min")
-    print(f"Total flow through nidus (out): {(graph[21][11]['flow'] if 11 in graph[21] else graph[11][21]['flow']) + (graph[22][11]['flow'] if 11 in graph[22] else graph[11][22]['flow']) + (graph[23][11]['flow'] if 11 in graph[23] else graph[11][23]['flow'])} mL/min")
+    print(f"Total flow through nidus (out): {(graph[18][11]['flow'] if 11 in graph[18] else graph[11][18]['flow']) + (graph[19][11]['flow'] if 11 in graph[19] else graph[11][19]['flow']) + (graph[20][11]['flow'] if 11 in graph[20] else graph[11][20]['flow'])} mL/min")
     print(f"Total flow through nidus (in): {(graph[3][14]['flow'] if 14 in graph[3] else graph[14][3]['flow']) + (graph[6][15]['flow'] if 15 in graph[6] else graph[15][6]['flow']) + (graph[6][16]['flow'] if 16 in graph[6] else graph[16][6]['flow']) + (graph[9][17]['flow'] if 17 in graph[9] else graph[17][9]['flow'])} mL/min")
 
     # print(f"Minimum pressure: {np.min(np.abs(pressure / avm.MMHG_TO_DYNCM))} mmHg")

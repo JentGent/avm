@@ -172,6 +172,43 @@ def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list) -> nx
             )
     return graph
 
+def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: list[list[float]]) -> nx.Graph:
+    random_graph = nx.stochastic_block_model(sizes, p, intranidal_nodes)
+    graph = graph.copy()
+    for edge in random_graph.edges:
+            radius, length = 0.05, 5
+            graph.add_edge(
+                edge[0],
+                edge[1],
+                start=edge[0],
+                end=edge[1],
+                radius=radius,
+                length=length,
+                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
+                resistance=81600,
+                label="",
+                plexiform=True
+            )
+    return graph
+
+def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
+    graph = graph.copy()
+    for n1, n2 in zip(intranidal_nodes[:-1], intranidal_nodes[1:]):
+            radius, length = 0.05, 5
+            graph.add_edge(
+                n1,
+                n2,
+                start=n1,
+                end=n2,
+                radius=radius,
+                length=length,
+                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
+                resistance=81600,
+                label="",
+                plexiform=True
+            )
+    return graph
+
 def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes.
 
