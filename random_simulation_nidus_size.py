@@ -118,25 +118,19 @@ INTRANIDAL_NODES = list(range(21, 21 + NUM_INTRANIDAL_NODES))
 
 
 def main():
-    iters = 20
-    f, pf, ff = [], [], []
-    for i in range(iters):
-        network = avm.edges_to_graph(VESSELS)
-        network = avm.generate_nidus(network, INTRANIDAL_NODES, 1000)
-        flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
-        f.append(avm.get_stats(graph)["Drainer total flow"])
-        for node1, node2, data in graph.edges(data=True):
-            if data["type"] == avm.vessel.fistulous:
-                ff.append(data["pressure"])
-            elif data["type"] == avm.vessel.plexiform:
-                pf.append(data["pressure"])
-    print(f"{min(f)} – {max(f)} (mean: {np.mean(f)}, sd {np.std(f)})")
-    print(f"{min(pf)} – {max(pf)} (mean: {np.mean(pf)}, sd {np.std(pf)})")
-    print(f"{min(ff)} – {max(ff)} (mean: {np.mean(ff)}, sd {np.std(ff)})")
-    # for key, value in avm.get_stats(graph).items():
-    #     print(f"{key}: {value}")
-    # avm.display(graph, INTRANIDAL_NODES, NODE_POS)
-    # plt.show()
+    num_iters = 3
+    for size in [100, 300, 1000, 3000, 6000]:
+        fe_total_flow, dr_total_flow = 0, 0
+        n = int((1 + np.sqrt(1 + 8 * size)) * 0.64)
+        INTRANIDAL_NODES = list(range(21, 21 + n))
+        for iter in range(num_iters):
+            network = avm.edges_to_graph(VESSELS)
+            network = avm.generate_nidus(network, INTRANIDAL_NODES, size)
+            flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
+            stats = avm.get_stats(graph)
+            fe_total_flow += stats["Feeder total flow"]
+            dr_total_flow += stats["Drainer total flow"]
+        print(f"{size}, {n}: {fe_total_flow / num_iters}, {dr_total_flow / num_iters}")
 
 if __name__ == "__main__":
     main()

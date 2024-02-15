@@ -1,14 +1,14 @@
-"""Recreates the September 2019 network."""
+"""Recreates the September 2019 network, but with resistances randomized to approximate reverse-engineered values."""
 
 import avm
 import numpy as np
-import matplotlib.pyplot as plt
+import random
 
 # FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
-FISTULOUS_RESISTANCE = 4080
+FISTULOUS_RESISTANCE = 2300
 
 # PLEXIFORM_RESISTANCE is just for testing purposes; the reported value in the paper is 81600.
-PLEXIFORM_RESISTANCE = 81600
+PLEXIFORM_RESISTANCE = 114933.75
 
 # SIMULATIONS lists pressures for the 72 different TRENSH injection simulations.
 SIMULATIONS = []
@@ -219,6 +219,9 @@ VESSELS = [
     [39, 42, 0.05, 5, PLEXIFORM_RESISTANCE, "", avm.vessel.plexiform],
     [16, 44, 0.05, 5, PLEXIFORM_RESISTANCE, "", avm.vessel.plexiform],
 ]
+for vessel in VESSELS:
+    if vessel[4] == PLEXIFORM_RESISTANCE:
+        vessel[4] = np.random.normal(114933.75, 5654.48333333)
 
 # Check for duplicate vessels
 print("checking vessels...")
@@ -256,28 +259,7 @@ def main():
     for key, value in avm.get_stats(graph).items():
         print(f"{key}: {value}")
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
-    plt.show()
 
-
-"""
-Number of vessels: 125
-Flow stats: (0.04591041821052855, 88.0652564329104, 900.0927616522242)
-Pressure stats: (0.011252115950508595, 14.423006649034887, 85.006918840672)
-Number of fistulous vessels: 4
-Fistulous flow stats: (583.4321528578665, 614.3478783150113, 651.1680821030852)
-Fistulous pressure stats: (29.757569189132266, 31.334405218509154, 33.212395240852814)
-Number of plexiform vessels: 99
-Plexiform flow stats: (0.04591041821052855, 13.549633229088034, 55.563905076549986)
-Plexiform pressure stats: (0.04683260734636356, 13.821800746733265, 56.680000978164124)
-Number of feeders: 4
-Feeder flow stats: (0.3110728418525621, 222.94851669377402, 752.7241880849919)
-Feeder pressure stats: (3.8215909850643857, 36.35625080641112, 85.006918840672)
-Feeder total flow: 891.7940682631757
-Number of drainers: 3
-Drainer flow stats: (79.3489393887554, 297.26468892503203, 716.7725170568867)
-Drainer pressure stats: (0.1294489605395531, 0.48495424491977673, 1.169334561886807)
-Drainer total flow: 891.7940667750961
-"""
 
 
 if __name__ == "__main__":

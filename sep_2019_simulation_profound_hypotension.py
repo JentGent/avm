@@ -234,17 +234,55 @@ for i in range(len(VESSELS) - 1):
 print("DUPLICATE VESSELS" if any_duplicates else "all good")
 
 # PRESSURES is a dictionary of known node : pressure values.
-PRESSURES = {
-    ("SP", 1): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (3, "AF1"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (6, "AF2"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (6, "AF3"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (9, "AF4"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    ("DV1", 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    ("DV2", 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    ("DV3", 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
-}
+match "profound":
+    case "normo":
+        PRESSURES = {
+            ("SP", 1): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (3, "AF1"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF2"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF3"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (9, "AF4"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV1", 11): (17 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV2", 11): (17 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV3", 11): (17 - 30) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (12, 13): 6 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+        }
+    case "minor":
+        PRESSURES = {
+            ("SP", 1): 70 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (3, "AF1"): 45 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF2"): 45 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF3"): 48 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (9, "AF4"): 48 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV1", 11): (15 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV2", 11): (15 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV3", 11): (15 - 30) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+        }
+    case "moderate":
+        PRESSURES = {
+            ("SP", 1): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (3, "AF1"): 32 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF2"): 32 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF3"): 34 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (9, "AF4"): 34 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV1", 11): (12 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV2", 11): (12 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV3", 11): (12 - 30) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+        }
+    case "profound":
+        PRESSURES = {
+            ("SP", 1): 25 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (3, "AF1"): 15 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF2"): 15 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (6, "AF3"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (9, "AF4"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV1", 11): (8 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV2", 11): (8 - 0) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            ("DV3", 11): (8 - 30) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+            (12, 13): 4 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+        }
 
 # INTRANIDAL_NODES is a list of nodes in the nidus.
 INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(14, 63 + 1)) + ["DV1", "DV2", "DV3"]
@@ -255,29 +293,8 @@ def main():
     flow, pressure, _, graph = avm.simulate(network, [], PRESSURES)
     for key, value in avm.get_stats(graph).items():
         print(f"{key}: {value}")
-    avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+    avm.display(graph, INTRANIDAL_NODES, NODE_POS, cmap_min = 0, cmap_max = 50)
     plt.show()
-
-
-"""
-Number of vessels: 125
-Flow stats: (0.04591041821052855, 88.0652564329104, 900.0927616522242)
-Pressure stats: (0.011252115950508595, 14.423006649034887, 85.006918840672)
-Number of fistulous vessels: 4
-Fistulous flow stats: (583.4321528578665, 614.3478783150113, 651.1680821030852)
-Fistulous pressure stats: (29.757569189132266, 31.334405218509154, 33.212395240852814)
-Number of plexiform vessels: 99
-Plexiform flow stats: (0.04591041821052855, 13.549633229088034, 55.563905076549986)
-Plexiform pressure stats: (0.04683260734636356, 13.821800746733265, 56.680000978164124)
-Number of feeders: 4
-Feeder flow stats: (0.3110728418525621, 222.94851669377402, 752.7241880849919)
-Feeder pressure stats: (3.8215909850643857, 36.35625080641112, 85.006918840672)
-Feeder total flow: 891.7940682631757
-Number of drainers: 3
-Drainer flow stats: (79.3489393887554, 297.26468892503203, 716.7725170568867)
-Drainer pressure stats: (0.1294489605395531, 0.48495424491977673, 1.169334561886807)
-Drainer total flow: 891.7940667750961
-"""
 
 
 if __name__ == "__main__":

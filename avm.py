@@ -16,11 +16,16 @@ MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
 # ABS_PRESSURE indicates whether or not to display calculated absolute pressures.
 ABS_PRESSURE = False
 
+# vessel has vessel type IDs.
+class vessel:
+    other = 0
+    fistulous = 1
+    plexiform = 2
+    feeder = 3
+    drainer = 4
+
 # LABEL determines the labels. When LABEL is True, the edge labels are displayed. When it is False, the flow and pressure information is displayed.
 LABEL = True
-
-# FLOWS determines the color scheme. When FLOWS is True, the colors of edges represent the flows. When it is False, the colors represent the pressures.
-FLOWS = True
 
 
 def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, float]):
@@ -39,7 +44,7 @@ def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, flo
     for edge in edges:
         next_node = edge[1]
         if "pressure" not in graph.nodes[next_node] and graph.edges[edge]["start"] == node:
-            next_pressure = pressure + graph.edges[edge]["Δpressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
+            next_pressure = pressure + graph.edges[edge]["pressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
             pressure_forward(graph, next_node, next_pressure, pressures)
 
 
@@ -53,15 +58,17 @@ def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
     pressure_forward(graph, "SP", pressures["SP"], pressures)
 
 
-def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
+def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}, title = None, cmap_min = None, cmap_max = None, color_is_flow = True):
     """Displays the graph.
 
     Args:
         graph: The graph.
-        intranidal_nodes: The nodes in the nidus.
+        intranidal_nodes: The nodes in the nidus. This is only for color-coding.
         node_pos: A dictionary of node : [x, y] positions.
+        title: Optional title for the graph.
+        color_is_flow: If `True`, the color will represent flow, and the edge thickness will represent pressure; if `False`, it will be the other way around.
     """
-    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys())
+    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
     # Fix node positions
     xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [
@@ -86,33 +93,33 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}):
     nx.draw_networkx_labels(graph, pos)
 
     # Edges
-    pressures = [edge[2]["Δpressure"] for edge in graph.edges(data=True)]
+    pressures = [edge[2]["pressure"] for edge in graph.edges(data=True)]
     flows = [edge[2]["flow"] for edge in graph.edges(data=True)]
     min_pressure, max_pressure = min(pressures), max(pressures)
     min_flow, max_flow = min(flows), max(flows)
 
-    if FLOWS:
-        edge_widths = [np.interp(edge[2]["Δpressure"], [min_pressure, max_pressure], [0.5, 5]) for edge in graph.edges(data=True)]
+    if color_is_flow:
+        edge_widths = [np.interp(edge[2]["pressure"], [min_pressure, max_pressure], [0.5, 5]) for edge in graph.edges(data=True)]
         edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
     else:
         edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [0.5, 5]) for edge in graph.edges(data=True)]
-        edge_colors = [edge[2]["Δpressure"] for edge in graph.edges(data=True)]
-    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if FLOWS else plt.cm.Reds)
+        edge_colors = [edge[2]["pressure"] for edge in graph.edges(data=True)]
+    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else plt.cm.Reds, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
     if LABEL:
         edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
     else:
-        edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["Δpressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data=True)}
+        edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) + "\n" + str(round(edge[2]["pressure"] * (-1 if edge[2]["flow"] < 0 else 1), 3)) for edge in graph.edges(data=True)}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels)
-    if FLOWS:
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors), vmax=max(edge_colors)))
+    if color_is_flow:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors) if cmap_min is None else cmap_min, vmax=max(edge_colors) if cmap_max is None else cmap_max))
         sm.set_array([])
-        plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
     else:
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure, vmax=max_pressure))
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
         sm.set_array([])
-        plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
-    plt.show()
-
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
+    # plt.title(title)
+    return colorbar
 
 def edges_to_graph(edges: list) -> nx.Graph:
     """Converts a list of edges to a graph in the right format ([starting node, ending node, radius, length, resistance, label]).
@@ -134,7 +141,7 @@ def edges_to_graph(edges: list) -> nx.Graph:
             "length": edge[3],
             "resistance": edge[4],
             "label": edge[5],
-            "fistulous": edge[6] if len(edge) > 6 else False
+            "type": edge[6] if len(edge) > 6 else vessel.other
         }) for edge in edges
     ])
     return graph
@@ -168,11 +175,22 @@ def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list) -> nx
                 # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
                 resistance=81600,
                 label="",
-                plexiform=True
+                type=vessel.plexiform
             )
     return graph
 
 def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: list[list[float]]) -> nx.Graph:
+    """Generates a new graph with a random nidus from a given graph and its intranidal nodes with a stochastic block model
+
+    Args:
+        graph: The original graph.
+        intranidal_nodes: List of the nodes between which to generate edges.
+        sizes: List of block sizes (see NetworkX's stochastic_block_model).
+        p: Stochastic matrix (see NetworkX's stochastic_block_model).
+
+    Returns:
+        graph: The graph with a random nidus formation.
+    """
     random_graph = nx.stochastic_block_model(sizes, p, intranidal_nodes)
     graph = graph.copy()
     for edge in random_graph.edges:
@@ -187,11 +205,20 @@ def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: li
                 # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
                 resistance=81600,
                 label="",
-                plexiform=True
+                type=vessel.plexiform
             )
     return graph
 
 def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
+    """Generates a new graph from a given graph and its intranidal nodes by connecting the intranidal nodes in a single path.
+
+    Args:
+        graph: The original graph.
+        intranidal_nodes: List of the nodes between which to generate edges.
+
+    Returns:
+        graph: The graph with a nidus formation.
+    """
     graph = graph.copy()
     for n1, n2 in zip(intranidal_nodes[:-1], intranidal_nodes[1:]):
             radius, length = 0.05, 5
@@ -205,7 +232,7 @@ def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
                 # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
                 resistance=81600,
                 label="",
-                plexiform=True
+                type=vessel.plexiform
             )
     return graph
 
@@ -238,7 +265,7 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
                     # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
                     resistance=81600,
                     label="",
-                    plexiform=True
+                    type=vessel.plexiform
                 )
     return graph
 
@@ -254,10 +281,10 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
         num_expected_edges: Expected number of edges to generate in the nidus.
 
     Returns:
-        flow: The calculated flow values.
-        pressure: The calculated pressure gradients.
+        flow: The calculated flow values, in cm^3/s.
+        pressure: The calculated pressure gradients, in dyn / cm^2.
         all_edges: The list of edges in the same order as the flow and pressure arrays.
-        graph: The directed graph of flow and pressure.
+        graph: The directed graph of flow (mL/min) and pressure (mmHg).
     """
     flow, pressure, all_edges = get_Q_and_P(graph, p_ext)
     if ABS_PRESSURE:
@@ -272,15 +299,106 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
             "length": edge[2]["length"],
             "resistance": edge[2]["resistance"],
             "label": edge[2]["label"],
-            "flow": abs(edge[2]["flow"]) * 60,  # cm^3/s = 60 mL/min
-            "Δpressure": abs(edge[2]["Δpressure"]) / MMHG_TO_DYN_PER_SQUARE_CM,
-            "plexiform": edge[2]["plexiform"] if "plexiform" in edge[2] else False,
-            "fistulous": edge[2]["fistulous"] if "fistulous" in edge[2] else False,
+            "flow": abs(edge[2]["flow"]) * 60,  # x cm^3/s = 60x mL/min
+            "pressure": abs(edge[2]["pressure"]) / MMHG_TO_DYN_PER_SQUARE_CM,
+            "type": edge[2]["type"]
         }) for edge in graph.edges(data=True) if not ONLY_INTRANIDAL or (edge[0] in intranidal_nodes and edge[1] in intranidal_nodes)
     ])
     graph.add_nodes_from([(node[0], {"pressure": node[1]}) for node in pnodes])
     return flow, pressure, all_edges, graph
 
+def get_stats(graph: nx.DiGraph):
+    """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`.
+    
+    Args:
+        graph: Graph (result of `simulate()`).
+    
+    Returns:
+        stats: A dictionary of stats.
+    """
+    count = 0
+    flow_total, flow_min, flow_max = 0, 1000000000000000000000000, -1000000000000000000000000
+    pressure_total, pressure_min, pressure_max = 0, 1000000000000000000000000, -1000000000000000000000000
+
+    fi_count = 0
+    fi_flow_total, fi_flow_min, fi_flow_max = 0, flow_min, flow_max
+    fi_pressure_total, fi_pressure_min, fi_pressure_max = 0, flow_min, flow_max
+    
+    pl_count = 0
+    pl_flow_total, pl_flow_min, pl_flow_max = 0, flow_min, flow_max
+    pl_pressure_total, pl_pressure_min, pl_pressure_max = 0, flow_min, flow_max
+    
+    fe_count = 0
+    fe_flow_total, fe_flow_min, fe_flow_max = 0, flow_min, flow_max
+    fe_pressure_total, fe_pressure_min, fe_pressure_max = 0, flow_min, flow_max
+    
+    dr_count = 0
+    dr_flow_total, dr_flow_min, dr_flow_max = 0, flow_min, flow_max
+    dr_pressure_total, dr_pressure_min, dr_pressure_max = 0, flow_min, flow_max
+
+    for node1, node2, attr in graph.edges(data=True):
+        count += 1
+        flow_total += attr["flow"]
+        flow_min = min(flow_min, attr["flow"])
+        flow_max = max(flow_max, attr["flow"])
+        pressure_total += attr["pressure"]
+        pressure_min = min(pressure_min, attr["pressure"])
+        pressure_max = max(pressure_max, attr["pressure"])
+        if attr["type"] == vessel.fistulous:
+            fi_count += 1
+            fi_flow_total += attr["flow"]
+            fi_flow_min = min(fi_flow_min, attr["flow"])
+            fi_flow_max = max(fi_flow_max, attr["flow"])
+            fi_pressure_total += attr["pressure"]
+            fi_pressure_min = min(fi_pressure_min, attr["pressure"])
+            fi_pressure_max = max(fi_pressure_max, attr["pressure"])
+        elif attr["type"] == vessel.plexiform:
+            pl_count += 1
+            pl_flow_total += attr["flow"]
+            pl_flow_min = min(pl_flow_min, attr["flow"])
+            pl_flow_max = max(pl_flow_max, attr["flow"])
+            pl_pressure_total += attr["pressure"]
+            pl_pressure_min = min(pl_pressure_min, attr["pressure"])
+            pl_pressure_max = max(pl_pressure_max, attr["pressure"])
+        elif attr["type"] == vessel.feeder:
+            fe_count += 1
+            fe_flow_total += attr["flow"]
+            fe_flow_min = min(fe_flow_min, attr["flow"])
+            fe_flow_max = max(fe_flow_max, attr["flow"])
+            fe_pressure_total += attr["pressure"]
+            fe_pressure_min = min(fe_pressure_min, attr["pressure"])
+            fe_pressure_max = max(fe_pressure_max, attr["pressure"])
+        elif attr["type"] == vessel.drainer:
+            dr_count += 1
+            dr_flow_total += attr["flow"]
+            dr_flow_min = min(dr_flow_min, attr["flow"])
+            dr_flow_max = max(dr_flow_max, attr["flow"])
+            dr_pressure_total += attr["pressure"]
+            dr_pressure_min = min(dr_pressure_min, attr["pressure"])
+            dr_pressure_max = max(dr_pressure_max, attr["pressure"])
+    return {
+        "Number of vessels": count,
+        "Flow stats": (flow_min, flow_total / count, flow_max),
+        "Pressure stats": (pressure_min, pressure_total / count, pressure_max),
+
+        "Number of fistulous vessels": fi_count,
+        "Fistulous flow stats": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max),
+        "Fistulous pressure stats": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max),
+        
+        "Number of plexiform vessels": pl_count,
+        "Plexiform flow stats": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max),
+        "Plexiform pressure stats": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max),
+
+        "Number of feeders": fe_count,
+        "Feeder flow stats": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max),
+        "Feeder pressure stats": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max),
+        "Feeder total flow": fe_flow_total,
+
+        "Number of drainers": dr_count,
+        "Drainer flow stats": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max),
+        "Drainer pressure stats": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max),
+        "Drainer total flow": dr_flow_total,
+    }
 
 def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
     """Calculates flow and pressure differences for each vessel.
@@ -333,7 +451,7 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
         ΔΔP.append(total_pressure)
 
     result = np.linalg.lstsq(np.array(Rv), np.array([ΔΔP]).T, rcond=None)
-    print(f"Error: {result[1]}")
+    # print(f"Error: {result[1]}")
     return result[0].flatten()
 
 
@@ -356,5 +474,5 @@ def get_Q_and_P(graph: nx.Graph, p_ext) -> tuple[np.ndarray, np.ndarray, list[tu
     # Hagen-Poiseuille equation
     pressure = flow * np.array([graph.edges[edge]["resistance"] for edge in all_edges])
     nx.set_edge_attributes(graph, {edge: flow[i] for i, edge in enumerate(all_edges)}, "flow")
-    nx.set_edge_attributes(graph, {edge: pressure[i] for i, edge in enumerate(all_edges)}, "Δpressure")
+    nx.set_edge_attributes(graph, {edge: pressure[i] for i, edge in enumerate(all_edges)}, "pressure")
     return flow, pressure, all_edges

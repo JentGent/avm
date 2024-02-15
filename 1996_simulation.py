@@ -2,6 +2,7 @@
 
 import avm
 import numpy as np
+import matplotlib.pyplot as plt
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -45,49 +46,49 @@ VESSELS = [
     [1, 2, 0, 0, 67.9, "R1"],
     [1, 4, 0, 0, 67.9, "R2"],
     [2, 3, 0, 0, 5037, "R3"],
-    [3, 12, 0, 0, 2210, "R4"],
+    [3, 12, 0, 0, 2210, "R4", avm.vessel.feeder],
     [4, 5, 0, 0, 637.5, "R5"],
     [5, 9, 0, 0, 1000000, "R6"],
     [9, 18, 0, 0, 12750000, "R7"],
     [9, 10, 0, 0, 1000000, "R8"],
     [10, 11, 0, 0, 4177.9, "R9"],
     [4, 6, 0, 0, 522, "R10"],
-    [6, 14, 0, 0, 745.5, "R11"],
-    [6, 13, 0, 0, 15725000, "R12"],
+    [6, 14, 0, 0, 745.5, "R11", avm.vessel.feeder],
+    [6, 13, 0, 0, 15725000, "R12", avm.vessel.feeder],
     [6, 7, 0, 0, 10200, "R13"],
-    [7, 8, 0, 0, 1000000, "R14"],
+    [7, 8, 0, 0, 1000000, "R14", avm.vessel.feeder],
     [8, 11, 0, 0, 4177.9, "R15"],
-    [13, 18, 0, 0, 81600, "R16"],
-    [13, 19, 0, 0, 81600, "R17"],
-    [14, 15, 0, 0, 81600, "R18"],
-    [14, 16, 0, 0, 4080, "R19", True],  # Fistulous
-    [14, 17, 0, 0, 81600, "R20"],
-    [15, 19, 0, 0, 81600, "R21"],
-    [15, 20, 0, 0, 81600, "R22"],
-    [16, 20, 0, 0, 81600, "R23"],
-    [16, 21, 0, 0, 4080, "R24", True],  # Fistulous
-    [17, 21, 0, 0, 81600, "R25"],
-    [17, 22, 0, 0, 81600, "R26"],
-    [12, 22, 0, 0, 81600, "R27"],
-    [12, 23, 0, 0, 81600, "R28"],
-    [23, 28, 0, 0, 81600, "R29"],
-    [22, 28, 0, 0, 81600, "R30"],
-    [22, 27, 0, 0, 81600, "R31"],
-    [21, 27, 0, 0, 4080, "R32", True],  # Fistulous
-    [21, 26, 0, 0, 81600, "R33"],
-    [20, 26, 0, 0, 81600, "R34"],
-    [20, 25, 0, 0, 81600, "R35"],
-    [19, 25, 0, 0, 81600, "R36"],
-    [19, 24, 0, 0, 81600, "R37"],
-    [18, 24, 0, 0, 81600, "R38"],
-    [24, 29, 0, 0, 81600, "R39"],
-    [25, 29, 0, 0, 81600, "R40"],
-    [26, 29, 0, 0, 81600, "R41"],
-    [26, 30, 0, 0, 81600, "R42"],
-    [27, 30, 0, 0, 4080, "R43", True],  # Fistulous
-    [28, 30, 0, 0, 81600, "R44"],
-    [29, 11, 0, 0, 130.5, "R45"],
-    [30, 11, 0, 0, 130.5, "R46"],
+    [13, 18, 0, 0, 81600, "R16", avm.vessel.plexiform],
+    [13, 19, 0, 0, 81600, "R17", avm.vessel.plexiform],
+    [14, 15, 0, 0, 81600, "R18", avm.vessel.plexiform],
+    [14, 16, 0, 0, 4080, "R19", avm.vessel.fistulous],  # Fistulous
+    [14, 17, 0, 0, 81600, "R20", avm.vessel.plexiform],
+    [15, 19, 0, 0, 81600, "R21", avm.vessel.plexiform],
+    [15, 20, 0, 0, 81600, "R22", avm.vessel.plexiform],
+    [16, 20, 0, 0, 81600, "R23", avm.vessel.plexiform],
+    [16, 21, 0, 0, 4080, "R24", avm.vessel.fistulous],  # Fistulous
+    [17, 21, 0, 0, 81600, "R25", avm.vessel.plexiform],
+    [17, 22, 0, 0, 81600, "R26", avm.vessel.plexiform],
+    [12, 22, 0, 0, 81600, "R27", avm.vessel.plexiform],
+    [12, 23, 0, 0, 81600, "R28", avm.vessel.plexiform],
+    [23, 28, 0, 0, 81600, "R29", avm.vessel.plexiform],
+    [22, 28, 0, 0, 81600, "R30", avm.vessel.plexiform],
+    [22, 27, 0, 0, 81600, "R31", avm.vessel.plexiform],
+    [21, 27, 0, 0, 4080, "R32", avm.vessel.fistulous],  # Fistulous
+    [21, 26, 0, 0, 81600, "R33", avm.vessel.plexiform],
+    [20, 26, 0, 0, 81600, "R34", avm.vessel.plexiform],
+    [20, 25, 0, 0, 81600, "R35", avm.vessel.plexiform],
+    [19, 25, 0, 0, 81600, "R36", avm.vessel.plexiform],
+    [19, 24, 0, 0, 81600, "R37", avm.vessel.plexiform],
+    [18, 24, 0, 0, 81600, "R38", avm.vessel.plexiform],
+    [24, 29, 0, 0, 81600, "R39", avm.vessel.plexiform],
+    [25, 29, 0, 0, 81600, "R40", avm.vessel.plexiform],
+    [26, 29, 0, 0, 81600, "R41", avm.vessel.plexiform],
+    [26, 30, 0, 0, 81600, "R42", avm.vessel.plexiform],
+    [27, 30, 0, 0, 4080, "R43", avm.vessel.fistulous],  # Fistulous
+    [28, 30, 0, 0, 81600, "R44", avm.vessel.plexiform],
+    [29, 11, 0, 0, 130.5, "R45", avm.vessel.drainer],
+    [30, 11, 0, 0, 130.5, "R46", avm.vessel.drainer],
     [11, 31, 0, 0, 261, "R47"],
     [31, 32, 0, 0, 79.7, "R48"],
     [32, "SP", 0, 0, 3.2, "R49"],
@@ -117,35 +118,12 @@ def main():
     flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
     flow = np.append(flow, 820.71 / 60)
     print(f"After: {flow.shape}")
+    print(avm.get_stats(graph))
 
-    fistulous = [edge[2] for edge in graph.edges(data=True) if edge[2]["resistance"] == 4080]
-    fistulous_pressures = [edge["Δpressure"] for edge in fistulous]
-    fistulous_flows = [edge["flow"] for edge in fistulous]
-    print(f"Number of fistulous vessels: {len(fistulous)}")
-    print(f"Fistulous flow range: ({min(fistulous_flows)}, {max(fistulous_flows)}) mL/min")
-    print(f"Fistulous flow average: {np.average(fistulous_flows)} mL/min")
-    print(f"Fistulous pressure range: ({min(fistulous_pressures)}, {max(fistulous_pressures)}) mmHg")
-    print(f"Fistulous pressure average: ({np.average(fistulous_pressures)}) mmHg")
-
-    plexiform = [edge[2] for edge in graph.edges(data=True) if edge[2]["resistance"] == 81600]
-    plexiform_pressures = [edge["Δpressure"] for edge in plexiform]
-    plexiform_flows = [edge["flow"] for edge in plexiform]
-    print(f"Number of plexiform vessels: {len(plexiform)}")
-    print(f"Plexiform flow range: ({min(plexiform_flows)}, {max(plexiform_flows)}) mL/min")
-    print(f"Plexiform flow average: {np.average(plexiform_flows)} mL/min")
-    print(f"Plexiform pressure range: ({min(plexiform_pressures)}, {max(plexiform_pressures)}) mmHg")
-    print(f"Plexiform pressure average: ({np.average(plexiform_pressures)}) mmHg")
-
-    print(f"Flows: {np.round(flow * 60, 3)}")
-    print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
-    print(f"Average flow: {np.average(np.abs(flow * 60))} mL/min")
-    print(f"Total flow through nidus (out): {graph[29][11]['flow'] + graph[30][11]['flow']} mL/min")
-    print(f"Total flow through nidus (in): {graph[3][12]['flow'] + graph[6][14]['flow'] + graph[6][13]['flow'] + graph[9][18]['flow']} mL/min")
-    print(f"Fistulous flow range: ({min(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}, {max(graph[14][16]['flow'], graph[16][21]['flow'], graph[21][27]['flow'], graph[27][30]['flow'])}) mL/min")
-    print(f"Minimum pressure: {np.min(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
-    print(f"Maximum pressure: {np.max(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
-    print(f"Average pressure: {np.average(np.abs(pressure / avm.MMHG_TO_DYN_PER_SQUARE_CM))}")
+    for key, value in avm.get_stats(graph).items():
+        print(f"{key}: {value}")
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+    plt.show()
 
 
 """

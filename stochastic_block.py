@@ -4,6 +4,13 @@ import avm
 import numpy as np
 from scipy.special import comb
 import scipy.optimize as spop
+import matplotlib.pyplot as plt
+
+# FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
+FISTULOUS_RESISTANCE = 4080
+
+# NUM_INTRANIDAL_NODES is the number of intranidal nodes. (minimum 10)
+NUM_INTRANIDAL_NODES = 57
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -24,14 +31,14 @@ NODE_POS = {
     15: [0, 0], # AF2
     16: [0, 0.5], # AF3
     17: [0.5, 0.5], # AF4
-
-    18: [0.1875, -0.1], # Fistulous
-    19: [0.375, 0.1],
-    20: [0.5625, 0.2],
     
-    21: [0.75, -0.85], # DV1
-    22: [0.75, 0], # DV2
-    23: [0.75, 0.4], # DV3
+    18: [0.75, -0.85], # DV1
+    19: [0.75, 0], # DV2
+    20: [0.75, 0.4], # DV3
+
+    21: [0.1875, -0.1], # Fistulous
+    22: [0.375, 0.1],
+    23: [0.5625, 0.2],
 
     "SP": [-1, -1],
 }
@@ -62,25 +69,29 @@ VESSELS = [
 
     # AVM vasculature
     # Major arterial feeders
-    [3, 14, 0.125, 5.2, 2210, "PCA"],  # posterior cerebral artery
-    [6, 15, 0.15, 3.7, 745.5, "MCA"],  # middle cerebral artery
+    [3, 14, 0.125, 5.2, 2210, "PCA", avm.vessel.feeder],  # posterior cerebral artery
+    [6, 15, 0.15, 3.7, 745.5, "MCA", avm.vessel.feeder],  # middle cerebral artery
     # Minor arterial feeders
-    [6, 16, 0.025, 3.7, 15725000, "ACA"],  # anterior cerebral artery
-    [9, 17, 0.0125, 3, 12750000, "TFA"],  # transdural feeding artery
+    [6, 16, 0.025, 3.7, 15725000, "ACA", avm.vessel.feeder],  # anterior cerebral artery
+    [9, 17, 0.0125, 3, 12750000, "TFA", avm.vessel.feeder],  # transdural feeding artery
     # Fistulous nidus vessels
-    [15, 18, 0.1, 4, 40800, "", True],
-    [18, 19, 0.1, 4, 40800, "", True],
-    [19, 20, 0.1, 4, 40800, "", True],
-    [20, 22, 0.1, 4, 40800, "", True],
+    [15, 21, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
+    [21, 22, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
+    [22, 23, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
+    [23, 19, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
     # Draining veins
-    [21, 11, 0.25, 5, 130.5, ""],
-    [22, 11, 0.25, 5, 130.5, ""],
-    [23, 11, 0.25, 5, 130.5, ""],
+    [18, 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
+    [19, 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
+    [20, 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
 
-    [14, 24, 0.05, 5, 81600, ""],
-    [15, 25, 0.05, 5, 81600, ""],
-    [16, 26, 0.05, 5, 81600, ""],
-    [17, 27, 0.05, 5, 81600, ""],
+    [14, 24, 0.05, 5, 81600, "", avm.vessel.plexiform],
+    [15, 25, 0.05, 5, 81600, "", avm.vessel.plexiform],
+    [16, 26, 0.05, 5, 81600, "", avm.vessel.plexiform],
+    [17, 27, 0.05, 5, 81600, "", avm.vessel.plexiform],
+
+    [21 + NUM_INTRANIDAL_NODES - 1, 18, 0.05, 5, 81600, "", avm.vessel.plexiform],
+    [21 + NUM_INTRANIDAL_NODES - 2, 19, 0.05, 5, 81600, "", avm.vessel.plexiform],
+    [21 + NUM_INTRANIDAL_NODES - 3, 20, 0.05, 5, 81600, "", avm.vessel.plexiform],
 ]
 
 # PRESSURES is a dictionary of known node : pressure values.
@@ -90,17 +101,14 @@ PRESSURES = {
     (6, 15): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (6, 16): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (9, 17): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (21, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (22, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (23, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (18, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (19, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+    (20, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
 }
 
-# NUM_INTRANIDAL_NODES is the number of intranidal nodes. (minimum 10)
-NUM_INTRANIDAL_NODES = 57
-
 # INTRANIDAL_NODES is a list of nodes in the nidus.
-INTRANIDAL_NODES = list(range(14, 14 + NUM_INTRANIDAL_NODES))
+INTRANIDAL_NODES = list(range(21, 21 + NUM_INTRANIDAL_NODES))
 
 def calc_expected_edges(p, sizes):
     n = 0
@@ -115,62 +123,58 @@ def calc_expected_edges(p, sizes):
 def zero_p(res, sizes):
     p = []
     index = 0
-    reach = 2
     AF, FI, DV = 0, 1, 2
     for block1 in range(len(sizes)):
         for block2 in range(block1, len(sizes)):
             if block1 == AF:
-                p.append(0)
-                # if block2 not in [AF, FI, DV] and block2 in range(2 - reach, 2 + reach + 1):
-                #     p.append(res[index])
-                #     index += 1
-                # else: p.append(0)
+                # p.append(0)
+                if block2 not in [AF, FI, DV]:
+                    p.append(res[index])
+                    index += 1
+                else: p.append(0)
             elif block1 == FI:
                 if block2 not in [FI, DV]:
                     p.append(res[index])
                     index += 1
                 else: p.append(0)
             elif block1 == DV:
-                if block2 not in [DV] and block2 >= len(sizes) - reach:
+                if block2 not in [DV]:
                     p.append(res[index])
                     index += 1
                 else: p.append(0)
             else:
-                if block2 in range(block1 - reach, block1 + reach + 1):
-                    p.append(res[index])
-                    index += 1
-                else: p.append(0)
+                p.append(res[index])
+                index += 1
     return p
 def generate_stochastic_matrix(sizes: list[int], num_expected_edges: int):
     p = []
     t = num_expected_edges / comb(sum(sizes), 2)
-    reach = 2
     AF, FI, DV = 0, 1, 2
     index = 0
+    M, C, P = 10, 2, 10
     bias = []
     for block1 in range(len(sizes)):
         for block2 in range(block1, len(sizes)):
             if block1 == AF:
-                do_nothing = 0
-                # if block2 not in [AF, FI, DV] and block2 in range(2 - reach, 2 + reach + 1):
-                #     p.append(t / ((2 - block1) ** 4 + 1))
-                #     bias.append([index, -(reach / 2) ** 4 + (block2 - 2) ** 4])
-                #     index += 1
+                # do_nothing = 0
+                if block2 not in [AF, FI, DV]:
+                    p.append(t / (C * (2 - block1) ** P + 1))
+                    bias.append([index, M * (P ** ((block2 - 2) ** C) - 1)])
+                    index += 1
             elif block1 == FI:
                 if block2 not in [FI, DV]:
                     p.append(0.2)
                     index += 1
             elif block1 == DV:
-                if block2 not in [DV] and block2 >= len(sizes) - reach:
-                    p.append(t / ((block2 - len(sizes)) ** 4 + 1))
-                    bias.append([index, -(reach / 2) ** 4 + (block2 - len(sizes)) ** 4])
+                if block2 not in [DV]:
+                    p.append(t / (C * (block2 - len(sizes)) ** P + 1))
+                    bias.append([index, M * (P ** ((block2 - len(sizes)) ** C) - 1)])
                     index += 1
             else:
-                if block2 in range(block1 - reach, block1 + reach + 1):
-                    p.append(t / ((block2 - block1) ** 4 + 1))
-                    bias.append([index, -(reach / 2) ** 4 + (block2 - block1) ** 4])
-                    index += 1
-    res = spop.minimize(lambda x: (calc_expected_edges(zero_p(x, sizes), sizes) - num_expected_edges) ** 2 + sum([x[i] * a for i, a in bias]), p, bounds = spop.Bounds(0, 1))
+                p.append(t / ((block2 - block1) ** P + 1))
+                bias.append([index, M * (P ** (block2 - block1) ** C) - 1])
+                index += 1
+    res = spop.minimize(lambda x: (calc_expected_edges(zero_p(x, sizes), sizes) - num_expected_edges) ** 2 + sum([x[i] * a for i, a in bias]) * 10, p, bounds = spop.Bounds(0, 1))
     print(res)
     p = zero_p(res.x, sizes)
     print(calc_expected_edges(p, sizes))
@@ -195,37 +199,14 @@ def main():
     # network = avm.generate_nidus_linear(network, INTRANIDAL_NODES)
     flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
 
-    # print(f"Number of flow values: {flow.shape}")
-    # print(f"Number of edges: {network.number_of_edges()}")
-    # print(f"Flows: {np.round(flow * 60, 3)}")
-    print(f"Vessel flow range: ({np.min(np.abs(flow * 60))}, {np.max(np.abs(flow * 60))}) mL/min")
-    print(f"Average flow: {np.average(np.abs(flow * 60))} mL/min")
-    print(f"Total flow through nidus (out): {(graph[21][11]['flow'] if 11 in graph[21] else graph[11][21]['flow']) + (graph[22][11]['flow'] if 11 in graph[22] else graph[11][22]['flow']) + (graph[23][11]['flow'] if 11 in graph[23] else graph[11][23]['flow'])} mL/min")
-    print(f"Total flow through nidus (in): {(graph[3][14]['flow'] if 14 in graph[3] else graph[14][3]['flow']) + (graph[6][15]['flow'] if 15 in graph[6] else graph[15][6]['flow']) + (graph[6][16]['flow'] if 16 in graph[6] else graph[16][6]['flow']) + (graph[9][17]['flow'] if 17 in graph[9] else graph[17][9]['flow'])} mL/min")
-
-    # print(f"Minimum pressure: {np.min(np.abs(pressure / avm.MMHG_TO_DYNCM))} mmHg")
-    # print(f"Maximum pressure: {np.max(np.abs(pressure / avm.MMHG_TO_DYNCM))} mmHg")
-    # print(f"Average pressure: {np.average(np.abs(pressure / avm.MMHG_TO_DYNCM))} mmHg")
-
-    fistulous = [edge[2] for edge in graph.edges(data = True) if "fistulous" in edge[2] and edge[2]["fistulous"]]
-    fistulous_pressures = [edge["Δpressure"] for edge in fistulous]
-    fistulous_flows = [edge["flow"] for edge in fistulous]
-    print(f"Number of fistulous vessels: {len(fistulous)}")
-    print(f"Fistulous flow range: ({min(fistulous_flows)}, {max(fistulous_flows)}) mL/min")
-    print(f"Fistulous flow average: {np.average(fistulous_flows)} mL/min")
-    print(f"Fistulous pressure range: ({min(fistulous_pressures)}, {max(fistulous_pressures)}) mmHg")
-    print(f"Fistulous pressure average: ({np.average(fistulous_pressures)}) mmHg")
-
-    plexiform = [edge[2] for edge in graph.edges(data = True) if "plexiform" in edge[2] and edge[2]["plexiform"]]
-    plexiform_pressures = [edge["Δpressure"] for edge in plexiform]
-    plexiform_flows = [edge["flow"] for edge in plexiform]
-    print(f"Number of plexiform vessels: {len(plexiform)}")
-    print(f"Plexiform flow range: ({min(plexiform_flows)}, {max(plexiform_flows)}) mL/min")
-    print(f"Plexiform flow average: {np.average(plexiform_flows)} mL/min")
-    print(f"Plexiform pressure range: ({min(plexiform_pressures)}, {max(plexiform_pressures)}) mmHg")
-    print(f"Plexiform pressure average: ({np.average(plexiform_pressures)}) mmHg")
+    for key, value in avm.get_stats(graph).items():
+        print(f"{key}: {value}")
+    graph.remove_nodes_from([i for i in range(1, 14)] + ["SP"])
+    plt.figure(1)
+    avm.display(graph, INTRANIDAL_NODES, NODE_POS, color_is_flow = False)
+    plt.figure(2)
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
-
+    plt.show()
 
 if __name__ == "__main__":
     main()
