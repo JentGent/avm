@@ -3,6 +3,7 @@
 import avm
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -41,7 +42,7 @@ NODE_POS = {
     "SP": [22, -544],
 }
 
-# VESSELS is formatted like [first node, second node, radius, length, resistance, label, fistulous (optional)].
+# VESSELS is formatted like [first node, second node, radius, length, resistance, label, type (optional)].
 VESSELS = [
     [1, 2, 0, 0, 67.9, "R1"],
     [1, 4, 0, 0, 67.9, "R2"],
@@ -94,6 +95,9 @@ VESSELS = [
     [32, "SP", 0, 0, 3.2, "R49"],
     ["SP", 1, 0, 0, 1, "R50"],
 ]
+for i in range(len(VESSELS)):
+    if random.random() < 0.5:
+        [VESSELS[i][0], VESSELS[i][1]] = [VESSELS[i][1], VESSELS[i][0]]
 
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
@@ -118,7 +122,6 @@ def main():
     flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
     flow = np.append(flow, 820.71 / 60)
     print(f"After: {flow.shape}")
-    print(avm.get_stats(graph))
 
     for key, value in avm.get_stats(graph).items():
         print(f"{key}: {value}")

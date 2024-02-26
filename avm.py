@@ -10,6 +10,9 @@ ONLY_INTRANIDAL = False
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.04
 
+# If PREDEFINED_RESISTANCE is True, radius and length data is ignored, and the given resistance values are used; otherwise, radius and length are plugged into the Hagen–Poiseuille equation: resistance = (8 * length * viscosity) / (pi r^4)
+PREDEFINED_RESISTANCE = True
+
 # x mmHg = x * MMHG_TO_DYNCM dyn/cm^2.
 MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
 
@@ -26,6 +29,18 @@ class vessel:
 
 # LABEL determines the labels. When LABEL is True, the edge labels are displayed. When it is False, the flow and pressure information is displayed.
 LABEL = True
+
+def calc_resistance(radius: float, length: float) -> float:
+    """Uses the Hagen-Poiseuille equation to calculate resistance: resistance = (8 * length * viscosity) / (pi r^4)
+    
+    Args:
+        radius: The radius of the blood vessel.
+        length: The length of the blood vessel.
+    
+    Returns:
+        resistance: The resistance of the blood vessel.
+    """
+    return 8 * length * VISCOSITY / np.pi / (radius ** 4)
 
 
 def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, float]):
@@ -139,14 +154,14 @@ def edges_to_graph(edges: list) -> nx.Graph:
             "end": edge[1],
             "radius": edge[2],
             "length": edge[3],
-            "resistance": edge[4],
+            "resistance": edge[4] if PREDEFINED_RESISTANCE else calc_resistance(edge[2], edge[3]),
             "label": edge[5],
             "type": edge[6] if len(edge) > 6 else vessel.other
         }) for edge in edges
     ])
     return graph
 
-def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
+def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes by going through each node and connecting it to two other new intranidal nodes.
 
     Args:
@@ -172,14 +187,13 @@ def generate_nidus_2n_connections(graph: nx.Graph, intranidal_nodes: list) -> nx
                 end=node,
                 radius=radius,
                 length=length,
-                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
-                resistance=81600,
+                resistance=plexiform_resistance if PREDEFINED_RESISTANCE else calc_resistance(radius, length),
                 label="",
                 type=vessel.plexiform
             )
     return graph
 
-def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: list[list[float]]) -> nx.Graph:
+def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: list[list[float]], plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes with a stochastic block model
 
     Args:
@@ -202,14 +216,13 @@ def generate_nidus_stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: li
                 end=edge[1],
                 radius=radius,
                 length=length,
-                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
-                resistance=81600,
+                resistance=plexiform_resistance if PREDEFINED_RESISTANCE else calc_resistance(radius, length),
                 label="",
                 type=vessel.plexiform
             )
     return graph
 
-def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
+def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph from a given graph and its intranidal nodes by connecting the intranidal nodes in a single path.
 
     Args:
@@ -229,14 +242,13 @@ def generate_nidus_linear(graph: nx.Graph, intranidal_nodes: list) -> nx.Graph:
                 end=n2,
                 radius=radius,
                 length=length,
-                # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
-                resistance=81600,
+                resistance=plexiform_resistance if PREDEFINED_RESISTANCE else calc_resistance(radius, length),
                 label="",
                 type=vessel.plexiform
             )
     return graph
 
-def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int) -> nx.Graph:
+def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes.
 
     Args:
@@ -262,8 +274,7 @@ def generate_nidus(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: 
                     end=intranidal_nodes[k],
                     radius=radius,
                     length=length,
-                    # resistance=8 * VISCOSITY / np.pi * length / (radius ** 4),
-                    resistance=81600,
+                    resistance=plexiform_resistance if PREDEFINED_RESISTANCE else calc_resistance(radius, length),
                     label="",
                     type=vessel.plexiform
                 )
@@ -378,25 +389,25 @@ def get_stats(graph: nx.DiGraph):
             dr_pressure_max = max(dr_pressure_max, attr["pressure"])
     return {
         "Number of vessels": count,
-        "Flow stats": (flow_min, flow_total / count, flow_max),
-        "Pressure stats": (pressure_min, pressure_total / count, pressure_max),
+        "Flow stats": (flow_min, flow_total / count, flow_max) if count else 0,
+        "Pressure stats": (pressure_min, pressure_total / count, pressure_max) if count else 0,
 
         "Number of fistulous vessels": fi_count,
-        "Fistulous flow stats": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max),
-        "Fistulous pressure stats": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max),
+        "Fistulous flow stats": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max) if fi_count else 0,
+        "Fistulous pressure stats": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max) if fi_count else 0,
         
         "Number of plexiform vessels": pl_count,
-        "Plexiform flow stats": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max),
-        "Plexiform pressure stats": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max),
+        "Plexiform flow stats": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max) if pl_count else 0,
+        "Plexiform pressure stats": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max) if pl_count else 0,
 
         "Number of feeders": fe_count,
-        "Feeder flow stats": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max),
-        "Feeder pressure stats": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max),
+        "Feeder flow stats": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max) if fe_count else 0,
+        "Feeder pressure stats": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max) if fe_count else 0,
         "Feeder total flow": fe_flow_total,
 
         "Number of drainers": dr_count,
-        "Drainer flow stats": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max),
-        "Drainer pressure stats": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max),
+        "Drainer flow stats": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max) if dr_count else 0,
+        "Drainer pressure stats": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max) if dr_count else 0,
         "Drainer total flow": dr_flow_total,
     }
 
@@ -439,14 +450,14 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
             edge = (node1, node2)
             if edge in all_edges:
                 index = all_edges.index(edge)
-                flow[index] = graph.edges[edge]["resistance"]
+                flow[index] = -graph.edges[edge]["resistance"]
             else:
                 index = all_edges.index((edge[1], edge[0]))
-                flow[index] = -graph.edges[edge]["resistance"]
+                flow[index] = graph.edges[edge]["resistance"]
             if edge in p_ext:
-                total_pressure += p_ext[edge]
+                total_pressure -= p_ext[edge]
             elif (node2, node1) in p_ext:
-                total_pressure -= p_ext[(node2, node1)]
+                total_pressure += p_ext[(node2, node1)]
         Rv.append(flow)
         ΔΔP.append(total_pressure)
 

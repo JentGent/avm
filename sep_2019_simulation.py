@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 
 # FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
 FISTULOUS_RESISTANCE = 4080
+# FISTULOUS_RESISTANCE = 26000
 
 # PLEXIFORM_RESISTANCE is just for testing purposes; the reported value in the paper is 81600.
 PLEXIFORM_RESISTANCE = 81600
+# PLEXIFORM_RESISTANCE = 60500
 
 # SIMULATIONS lists pressures for the 72 different TRENSH injection simulations.
 SIMULATIONS = []
@@ -93,12 +95,19 @@ VESSELS = [
     [13, "SP", 0.75, 10, 3.2, "superior vena cava"],
     ["SP", 1, 1, 10, 1, "aortic arch"],
     [1, 2, 0.35, 10, 67.9, "SCA"],
+
     [1, 4, 0.35, 10, 67.9, "CCA"],
     [4, 5, 0.2, 10, 637.5, "ECA"],
     [5, 9, 0.01, 0.1, 1000000, ""],
     [9, 10, 0.01, 0.1, 1000000, ""],
     [10, 11, 0.125, 10, 4177.9, ""],
     [12, 13, 0.4, 20, 79.7, "jugular veins"],
+    # [1, 4, 0.35, 10, 637.5, "CCA"],
+    # [4, 5, 0.2, 10, 1000000, "ECA"],
+    # [5, 9, 0.01, 0.1, 1000000, ""],
+    # [9, 10, 0.01, 0.1, 4177.9, ""],
+    # [12, 13, 0.4, 20, 79.7, "jugular veins"],
+
     [4, 6, 0.25, 20, 522, "ICA"],
     [2, 3, 0.15, 25, 5037, "VA"],
     [6, 7, 0.1, 10, 10200, ""],
