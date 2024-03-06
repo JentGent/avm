@@ -49,7 +49,7 @@ NODE_POS = {
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = 14
 
-# VESSELS elements are formatted like [first node, second node, radius (cm), length (cm), resistance (dyn s / cm^5), label, fistulous (optional)].
+# VESSELS elements are formatted like [first node, second node, radius (cm), length (cm), resistance (dyn s / cm^5), label, type (optional)].
 VESSELS = [
     [13, "SP", 0.75, 10, 3.2, "superior vena cava"],
     ["SP", 1, 1, 10, 1, "aortic arch"],
@@ -173,7 +173,8 @@ def generate_intranidal_vessels(vessels, nodes):
             for _ in range(EDGES[i][j]):
                 start_index = random.randint(0, len(nodes[i][j]) - 1)  # Uniform random distribution to choose start node
                 start_node_id = nodes[i][j][start_index]
-                end_node_id = choose_norm(nodes[i + 1][j], start_index, 2)  # Normal distribution centered around the same index from the top for the end node with StDev of 2
+                end_index = lerp(start_index, 0, len(column[j])-1, 0, len(nodes[i+1][j])-1)
+                end_node_id = choose_norm(nodes[i + 1][j], end_index, 2)  # Normal distribution centered around end index with StDev of 2
                 vessels.append([start_node_id, end_node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
     return vessels
 
@@ -352,17 +353,21 @@ def print_stats(graph):
     print(f"Fistulous resistance: {avm.calc_resistance(FISTULOUS_RADIUS, FISTULOUS_LENGTH)}")
 
 
-def compute_rupture_risk(pressures):
-    """Computes and prints the rupture risk for each pressure."""
-    p_max = 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM
-    p_min = PRESSURES[(12, 13)]
-    print(f'p_min: {p_min}')
-    print(f'p_exp: {pressures[0]}')
-    print(f'p_max: {p_max}')
+def compute_rupture_risk(graph):
+    """Computes and prints the rupture risk for each vessel."""
+    pressures = []
+    for _, _, attr in graph.edges(data=True):
+        if attr["type"] == avm.vessel.fistulous or attr["type"] == avm.vessel.plexiform:
+            pressures.append(attr["pressure"])
+    p_max = 74  # mmHg
+    p_min = PRESSURES[(12, 13)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
     risks = []
     for pressure in pressures:
         risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
+        risk = round(max(risk, 0))
+        print(f'Risk: {risk}%, pressure: {abs(pressure)} mmHg')
         risks.append(risk)
+    print(f'Max risk: {max(risks)}%')
     return risks
 
 
@@ -373,13 +378,13 @@ def main():
     vessels = generate_nidus()
     network = avm.edges_to_graph(vessels)
 
-    _, pressures, _, graph = avm.simulate(network, [], PRESSURES)
+    _, _, _, graph = avm.simulate(network, [], PRESSURES)
     print_stats(graph)
 
-    compute_rupture_risk(pressures)
+    compute_rupture_risk(graph)
 
     intranidal_nodes = list(range(FIRST_INTRANIDAL_NODE_ID, max_int_key(NODE_POS) + 1))
-    avm.display(graph, intranidal_nodes, NODE_POS, cmap_max=170)
+    avm.display(graph, intranidal_nodes, NODE_POS, cmap_max=74, color_is_flow=False)
     plt.show()
 
 

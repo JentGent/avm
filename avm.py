@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 ONLY_INTRANIDAL = False
 
 # VISCOSITY is the viscosity of blood in Poise.
-VISCOSITY = 0.04
+VISCOSITY = 0.035
 
 # If PREDEFINED_RESISTANCE is True, radius and length data is ignored, and the given resistance values are used; otherwise, radius and length are plugged into the Hagen–Poiseuille equation: resistance = (8 * length * viscosity) / (pi r^4)
 PREDEFINED_RESISTANCE = True
@@ -34,11 +34,11 @@ def calc_resistance(radius: float, length: float) -> float:
     """Uses the Hagen-Poiseuille equation to calculate resistance: resistance = (8 * length * viscosity) / (pi r^4)
     
     Args:
-        radius: The radius of the blood vessel (in cm)
-        length: The length of the blood vessel (in cm)
+        radius: The radius of the blood vessel in cm.
+        length: The length of the blood vessel in cm.
     
     Returns:
-        resistance: The resistance of the blood vessel (in Pa * s / cm^3)
+        resistance: The resistance of the blood vessel in dyn * s / cm^5.
     """
     return 8 * length * VISCOSITY / np.pi / (radius ** 4)
 
@@ -137,7 +137,7 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}, title = N
     return colorbar
 
 def edges_to_graph(edges: list) -> nx.Graph:
-    """Converts a list of edges to a graph in the right format ([starting node, ending node, radius, length, resistance, label]).
+    """Converts a list of edges to a graph in the right format ([starting node, ending node, radius (cm), length (cm), resistance (dyn * s / cm^5), label]).
 
     Args:
         edges: List of edges.
@@ -287,13 +287,13 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float]) -
     Args:
         graph: Graph from `edges_to_graph()` or `generate_nidus()`.
         intranidal_nodes: List of nodes in the nidus to generate edges between.
-        p_ext: A dictionary of known node : pressure values.
+        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
         num_nidi: Number of nidi to simulate.
         num_expected_edges: Expected number of edges to generate in the nidus.
 
     Returns:
-        flow: The calculated flow values, in cm^3/s.
-        pressure: The calculated pressure gradients, in dyn / cm^2.
+        flow: The calculated flow values in cm^3/s.
+        pressure: The calculated pressure gradients in dyn / cm^2.
         all_edges: The list of edges in the same order as the flow and pressure arrays.
         graph: The directed graph of flow (mL/min) and pressure (mmHg).
     """
@@ -389,30 +389,30 @@ def get_stats(graph: nx.DiGraph):
             dr_pressure_max = max(dr_pressure_max, attr["pressure"])
     return {
         "Number of vessels": count,
-        "Flow stats": (flow_min, flow_total / count, flow_max) if count else 0,
-        "Pressure stats": (pressure_min, pressure_total / count, pressure_max) if count else 0,
+        "Flow stats (mL/min)": (flow_min, flow_total / count, flow_max) if count else 0,
+        "Pressure stats (mmHg)": (pressure_min, pressure_total / count, pressure_max) if count else 0,
         "spacer1": "",
 
         "Number of fistulous vessels": fi_count,
-        "Fistulous flow stats": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max) if fi_count else 0,
-        "Fistulous pressure stats": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max) if fi_count else 0,
+        "Fistulous flow stats (mL/min)": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max) if fi_count else 0,
+        "Fistulous pressure stats (mmHg)": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max) if fi_count else 0,
         "spacer2": "",
         
         "Number of plexiform vessels": pl_count,
-        "Plexiform flow stats": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max) if pl_count else 0,
-        "Plexiform pressure stats": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max) if pl_count else 0,
+        "Plexiform flow stats (mL/min)": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max) if pl_count else 0,
+        "Plexiform pressure stats (mmHg)": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max) if pl_count else 0,
         "spacer3": "",
 
         "Number of feeders": fe_count,
-        "Feeder flow stats": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max) if fe_count else 0,
-        "Feeder pressure stats": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max) if fe_count else 0,
-        "Feeder total flow": fe_flow_total,
+        "Feeder flow stats (mL/min)": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max) if fe_count else 0,
+        "Feeder pressure stats (mmHg)": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max) if fe_count else 0,
+        "Feeder total flow (mL/min)": fe_flow_total,
         "spacer4": "",
 
         "Number of drainers": dr_count,
-        "Drainer flow stats": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max) if dr_count else 0,
-        "Drainer pressure stats": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max) if dr_count else 0,
-        "Drainer total flow": dr_flow_total,
+        "Drainer flow stats (mL/min)": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max) if dr_count else 0,
+        "Drainer pressure stats (mmHg)": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max) if dr_count else 0,
+        "Drainer total flow (mL/min)": dr_flow_total,
         "spacer5": "",
     }
 
@@ -421,11 +421,11 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
 
     Args:
         graph: The graph.
-        all_edges: A list of (starting node, ending node) tuples, with resistances in Pa
-        p_ext: A dictionary of known node : pressure values (in dyn * s / cm^5)
+        all_edges: A list of (starting node, ending node) tuples, with resistances in dyn * s / cm^5.
+        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
 
     Returns:
-        flow: The calculated flow values.
+        flow: The calculated flow values in cm^3 / s.
     """
     Rv = []
     ΔΔP = []
@@ -476,11 +476,11 @@ def get_Q_and_P(graph: nx.Graph, p_ext) -> tuple[np.ndarray, np.ndarray, list[tu
 
     Args:
         graph: The graph.
-        p_ext: A dictionary of known node : pressure values.
+        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
 
     Returns:
-        flow: The calculated flow values.
-        pressure: The calculated pressure gradients.
+        flow: The calculated flow values in cm^3 / s
+        pressure: The calculated pressure gradients in dyn / cm^2.
         all_edges: A list of the edges in the same order as the flows and pressures.
     """
     all_edges = [(edge[2]["start"], edge[2]["end"]) for edge in graph.edges(data=True)]
