@@ -1,31 +1,25 @@
-"""Randomly generates a nidus with nodes along columns for more organized visualization."""
+"""Randomly generates a nidus with nodes arranged in columns."""
 
 import avm
-import numpy as np
 import matplotlib.pyplot as plt
 import random
+import copy
+import math
 
-avm.PREDEFINED_RESISTANCE = False
+# SPACING is the size of the space between each compartment, where each unit is the height of one node.
+SPACING = 3
 
-# FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
-FISTULOUS_RESISTANCE = 0
+# PLEXIFORM_RADIUS is the radius of each plexiform vessel in cm.
+PLEXIFORM_RADIUS = 0.047
 
-# PLEXIFORM_RESISTANCE is just for testing purposes; the reported value in the paper is 81600.
-PLEXIFORM_RESISTANCE = 0
+# PLEXIFORM_LENGTH is the length of each plexiform vessel in cm.
+PLEXIFORM_LENGTH = 3
 
-# SIMULATIONS lists pressures for the 72 different TRENSH injection simulations.
-SIMULATIONS = []
+# FISTULOUS_RADIUS is the radius of each fistulous vessel in cm.
+FISTULOUS_RADIUS = 0.05
 
-def lerp(x, a, b, c, d):
-    return c + (d - c) * (x - a) / (b - a)
-def normint(a, b, mean, sd):
-    i = round(random.normalvariate(mean, sd))
-    while i < a or i > b:
-        i = round(random.normalvariate(mean, sd))
-    return i
-        
-def choose_norm(list, mean, sd):
-    return list[normint(0, len(list) - 1, mean, sd)]
+# FISTULOUS_LENGTH is the length of each fistulous vessel in cm.
+FISTULOUS_LENGTH = 1
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -42,9 +36,6 @@ NODE_POS = {
     11: [580, -300],
     12: [580, -590],
     13: [300, -590],
-    # 14: [275, -370],
-    # 15: [339, -359],
-    # 16: [425, -350],
     "SP": [10, -590],
     "AF1": [200, -500],
     "AF2": [200, -370],
@@ -54,6 +45,9 @@ NODE_POS = {
     "DV2": [500, -350],
     "DV3": [500, -250],
 }
+
+# FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
+FIRST_INTRANIDAL_NODE_ID = 14
 
 # VESSELS elements are formatted like [first node, second node, radius (cm), length (cm), resistance (dyn s / cm^5), label, fistulous (optional)].
 VESSELS = [
@@ -67,11 +61,6 @@ VESSELS = [
     [9, 10, 0.01, 0.1, 1000000, ""],
     [10, 11, 0.125, 10, 4177.9, ""],
     [12, 13, 0.4, 20, 79.7, "jugular veins"],
-    # [1, 4, 0.35, 10, 637.5, "CCA"],
-    # [4, 5, 0.2, 10, 1000000, "ECA"],
-    # [5, 9, 0.01, 0.1, 1000000, ""],
-    # [9, 10, 0.01, 0.1, 4177.9, ""],
-    # [12, 13, 0.4, 20, 79.7, "jugular veins"],
 
     [4, 6, 0.25, 20, 522, "ICA"],
     [2, 3, 0.15, 25, 5037, "VA"],
@@ -85,15 +74,17 @@ VESSELS = [
     [6, "AF3", 0.025, 3.7, 15725000, "ACA", avm.vessel.feeder],
     [9, "AF4", 0.0125, 3, 12750000, "TFA", avm.vessel.feeder],
 
-    # ["AF2", 14, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
-    # [14, 15, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
-    # [15, 16, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
-    # [16, "DV2", 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
     ["DV1", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
     ["DV2", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
     ["DV3", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
 ]
 
+# COLUMNS specifies the arrangement of the nodes in the nidus.
+# It must be a rectangular grid of size m x n.
+# m is the number of nidus columns.
+# n is the number of compartments in each nidus column.
+# Each row in COLUMNS represents one nidus column.
+# If the first row is [3, 4, 5, 6], this means that the first nidus column has 3 nodes in the first compartment, 4 nodes in the second compartment, etc.
 COLUMNS = [
     [2, 3, 2],
     [5, 10, 5],
@@ -103,86 +94,21 @@ COLUMNS = [
     [5, 10, 5],
     [2, 3, 2]
 ]
+
+# EDGES specifies the edges that connect adjacent columns.
+# It must be a rectangular grid of size m x n.
+# m is the number of nidus columns.
+# n is the number of compartments in each nidus column.
+# If the first row is [3, 4, 5, 6], this means that the first nidus column has 3 edges starting from the first compartment, 4 edges starting from the second compartment, etc.
+# Each edge starts in a compartment and ends in the corresponding compartment of the nidus column directly to the right. 
 EDGES = [
-    [5, 10, 5],
+    [5, 10, 5, 10],
     [20, 30, 20],
     [30, 40, 20],
     [30, 40, 20],
     [20, 30, 20],
     [5, 10, 5]
 ]
-
-node_id = 1
-while node_id in NODE_POS: node_id += 1
-SPACING = 3
-for i, groups in enumerate(COLUMNS):
-    total = sum(groups) + (len(groups) - 1) * SPACING
-    y = 0
-    for j, group_size in enumerate(groups):
-        nodes = []
-        for k in range(group_size):
-            NODE_POS[node_id] = [lerp(i, -1, len(COLUMNS), NODE_POS["AF2"][0], NODE_POS["DV2"][0]), lerp(y, -SPACING, total, NODE_POS["AF4"][1], NODE_POS["DV1"][1])]
-            nodes.append(node_id)
-            y += 1
-            node_id += 1
-        groups[j] = nodes
-        y += SPACING
-for i, groups in enumerate(COLUMNS[:-1]):
-    for j, group in enumerate(groups):
-        for k in range(EDGES[i][j]):
-            first = random.randint(0, len(COLUMNS[i][j]) - 1)
-            VESSELS.append([COLUMNS[i][j][first], choose_norm(COLUMNS[i + 1][j], first, 2), 0.047, 3, -1, "", avm.vessel.plexiform])
-            # VESSELS.append([random.choice(COLUMNS[i][j]), random.choice(COLUMNS[i + 1][j]), 0.43, 2, -1, "", avm.vessel.plexiform])
-VESSELS.append(["AF1", 19, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["AF1", 20, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["AF2", 16, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["AF2", 17, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["AF2", 18, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["AF3", 14, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["AF3", 15, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["AF4", 74, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["DV1", 177, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["DV1", 178, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["DV2", 174, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["DV2", 175, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["DV2", 176, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-VESSELS.append(["DV3", 172, 0.047, 3, -1, "", avm.vessel.plexiform])
-VESSELS.append(["DV3", 173, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-for i in range(20):
-    start = random.choice(["AF1", "AF2", "AF3", "AF4", "DV1", "DV2", "DV3"] + list(range(14, 178 + 1)))
-    end = random.choice(["AF1", "AF2", "AF3", "AF4", "DV1", "DV2", "DV3"] + list(range(14, 178 + 1)))
-    VESSELS.append([start, end, 0.047, 3, -1, "", avm.vessel.plexiform])
-
-start = "AF2"
-for i, column in enumerate(COLUMNS):
-    end = normint(0, len(COLUMNS[i][1]) - 1, 1 if start == "AF2" else start, 2)
-    VESSELS.append([start if start == "AF2" else COLUMNS[i - 1][1][start], COLUMNS[i][1][end], 0.044, 1, -1, "", avm.vessel.fistulous])
-    start = end
-VESSELS.append([COLUMNS[-1][1][start], "DV2", 0.5, 1, -1, "", avm.vessel.fistulous])
-
-print("Plexiform resistance: " + str(avm.calc_resistance(0.047, 3)))
-print("Fistulous resistance: " + str(avm.calc_resistance(0.044, 1)))
-
-# Check for duplicate vessels
-print("checking vessels...")
-any_duplicates = False
-for i in range(len(VESSELS) - 1):
-    if VESSELS[i][0] == VESSELS[i][1]:
-        # print(i, VESSELS[i])
-        any_duplicates = True
-    for j in range(i + 1, len(VESSELS)):
-        if (VESSELS[i][0] == VESSELS[j][0] and VESSELS[i][1] == VESSELS[j][1]) or (VESSELS[i][1] == VESSELS[j][0] and VESSELS[i][0] == VESSELS[j][1]):
-            # print(i, j, VESSELS[i])
-            any_duplicates = True
-print("DUPLICATE VESSELS" if any_duplicates else "all good")
-print("Number of vessels before removing duplicates: " + str(len(VESSELS)))
 
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
@@ -197,21 +123,263 @@ PRESSURES = {
     (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
 }
 
-# INTRANIDAL_NODES is a list of nodes in the nidus.
-INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(14, 178 + 1)) + ["DV1", "DV2", "DV3"]
+
+def lerp(x, a, b, c, d):
+    """Computes the linear interpolation between c and d, based on the relative position of x between a and b."""
+    return c + (d - c) * (x - a) / (b - a)
+
+
+def normint(a, b, mean, sd):
+    """Generates a random integer within the range [a, b], drawn from a normal distribution characterized by a specified mean and standard deviation. The function repeatedly samples from the normal distribution until an integer falling within the specified range is obtained."""
+    i = round(random.normalvariate(mean, sd))
+    while i < a or i > b:
+        i = round(random.normalvariate(mean, sd))
+    return i
+
+
+def choose_norm(list, mean, sd):
+    """Selects an element from list using an index generated by normint, which draws from a normal distribution with a specified mean and standard deviation. The index is constrained between 0 and the length of the list minus one, ensuring a valid element from the list is chosen."""
+    return list[normint(0, len(list) - 1, mean, sd)]
+
+
+def max_int_key(dict):
+    """Examines the keys of the dict and returns the max int found."""
+    return max(k for k in dict.keys() if type(k) == int)
+
+
+def generate_nodes():
+    """Generates the nodes in the nidus."""
+    nodes = copy.deepcopy(COLUMNS)
+    node_id = max_int_key(NODE_POS) + 1
+    for i, column in enumerate(COLUMNS):
+        height = sum(column) + (len(column) - 1) * SPACING  # The height (in number of nodes) of the column
+        y = 0
+        for j, compartment in enumerate(column):
+            compartment_nodes = []
+            for _ in range(compartment):
+                NODE_POS[node_id] = [lerp(i, -1, len(COLUMNS), NODE_POS["AF2"][0], NODE_POS["DV2"][0]), lerp(y, -SPACING, height, NODE_POS["AF4"][1], NODE_POS["DV1"][1])]
+                compartment_nodes.append(node_id)
+                y += 1
+                node_id += 1
+            nodes[i][j] = compartment_nodes
+            y += SPACING
+    return nodes
+
+
+def generate_intranidal_vessels(vessels, nodes):
+    """Generates the intranidal vessels."""
+    for i, column in enumerate(nodes[:-1]):
+        for j in range(len(column)):
+            for _ in range(EDGES[i][j]):
+                start_index = random.randint(0, len(nodes[i][j]) - 1)  # Uniform random distribution to choose start node
+                start_node_id = nodes[i][j][start_index]
+                end_node_id = choose_norm(nodes[i + 1][j], start_index, 2)  # Normal distribution centered around the same index from the top for the end node with StDev of 2
+                vessels.append([start_node_id, end_node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+    return vessels
+
+
+def generate_extranidal_vessels(vessels, nodes):
+    """Generates the vessels that connect the intranidal nodes to the feeders and drainers."""
+    for i, column in enumerate(nodes):
+        for j, compartment in enumerate(column):
+            for node_id in compartment:
+                if i == 0:
+                    if j == 0:
+                        vessels.append(["AF3", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                    elif j == 1:
+                        vessels.append(["AF2", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                    else:
+                        vessels.append(["AF1", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                elif i == len(COLUMNS) - 1:
+                    if j == 0:
+                        vessels.append(["DV3", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                    elif j == 1:
+                        vessels.append(["DV2", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                    else:
+                        vessels.append(["DV1", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+    vessels.append(["AF4", 74, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+    return vessels
+
+
+def generate_cross_compartment_vessels(vessels, n):
+    """Generates n vessels between any two intranidal nodes."""
+    for _ in range(n):
+        start = random.choice(list(range(FIRST_INTRANIDAL_NODE_ID, max_int_key(NODE_POS) + 1)))
+        end = random.choice(list(range(FIRST_INTRANIDAL_NODE_ID, max_int_key(NODE_POS) + 1)))
+        vessels.append([start, end, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+    return vessels
+
+
+def generate_fistulous_vessels(vessels, nodes):
+    """Generates the fistulous vessels as a continuous path through the nidus."""
+    start_index = 1
+    for i in range(len(nodes)):
+        start_node_id = "AF2" if i == 0 else nodes[i - 1][1][start_index]
+        end_index = normint(0, len(nodes[i][1]) - 1, start_index, 2)
+        vessels.append([start_node_id, nodes[i][1][end_index], FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "F", avm.vessel.fistulous])
+        start_index = end_index
+    vessels.append([nodes[-1][1][start_index], "DV2", FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "", avm.vessel.fistulous])
+    return vessels
+
+# injections = {}
+# for dv in [1, 2, 3]:  # Injection location
+#     for i in [10, 20, 30]:  # Injection pressure
+#         p = 17
+#         injections[f"DV{dv} {i} mmHg normotension, normal CVP"] = {
+#             ("SP", 1): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 6 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 15
+#         injections[f"DV{dv} {i} mmHg minor hypotension, normal CVP"] = {
+#             ("SP", 1): 70 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 45 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 45 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 48 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 48 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 12
+#         injections[f"DV{dv} {i} mmHg moderate hypotension, normal CVP"] = {
+#             ("SP", 1): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 32 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 32 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 34 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 34 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 8
+#         injections[f"DV{dv} {i} mmHg profound hypotension, normal CVP"] = {
+#             ("SP", 1): 25 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 15 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 15 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 4 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+        
+#         p = 22
+#         injections[f"DV{dv} {i} mmHg normotension, elevated CVP"] = {
+#             ("SP", 1): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 49 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 49 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 52 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 52 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 12 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 19
+#         injections[f"DV{dv} {i} mmHg minor hypotension, elevated CVP"] = {
+#             ("SP", 1): 70 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 10 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 14
+#         injections[f"DV{dv} {i} mmHg moderate hypotension, elevated CVP"] = {
+#             ("SP", 1): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 33 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 33 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 35 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 35 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 8 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+
+#         p = 9
+#         injections[f"DV{dv} {i} mmHg profound hypotension, elevated CVP"] = {
+#             ("SP", 1): 25 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (3, "AF1"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF2"): 16 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (6, "AF3"): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (9, "AF4"): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV1", 11): ((p - i) if dv == 1 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV2", 11): ((p - i) if dv == 2 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             ("DV3", 11): ((p - i) if dv == 3 else p) * avm.MMHG_TO_DYN_PER_SQUARE_CM,
+#             (12, 13): 6 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+#         }
+# injections = list(injections.items())
+
+# PRESSURES = injections[0]
+
+def generate_nidus():
+    nodes = generate_nodes()
+    vessels = copy.deepcopy(VESSELS)
+    vessels = generate_intranidal_vessels(vessels, nodes)
+    vessels = generate_extranidal_vessels(vessels, nodes)
+    # vessels = generate_cross_compartment_vessels(vessels, 20)  # Causing weird problems
+    vessels = generate_fistulous_vessels(vessels, nodes)
+    return vessels
+
+
+def print_stats(graph):
+    print('Stats are shown as (min, mean, max)\n')
+    for key, value in avm.get_stats(graph).items():
+        if value:
+            print(f"{key}: {value}")
+        else:
+            print('')
+    print(f"Plexiform resistance: {avm.calc_resistance(PLEXIFORM_RADIUS, PLEXIFORM_LENGTH)}")
+    print(f"Fistulous resistance: {avm.calc_resistance(FISTULOUS_RADIUS, FISTULOUS_LENGTH)}")
+
+
+def compute_rupture_risk(pressures):
+    """Computes and prints the rupture risk for each pressure."""
+    p_max = 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+    p_min = PRESSURES[(12, 13)]
+    print(f'p_min: {p_min}')
+    print(f'p_exp: {pressures[0]}')
+    print(f'p_max: {p_max}')
+    risks = []
+    for pressure in pressures:
+        risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
+        risks.append(risk)
+    return risks
 
 
 def main():
-    network = avm.edges_to_graph(VESSELS)
-    flow, pressure, _, graph = avm.simulate(network, [], PRESSURES)
-    for key, value in avm.get_stats(graph).items():
-        print(f"{key}: {value}")
-    nodes_to_remove = []
-    for node in graph.nodes:
-        if node not in INTRANIDAL_NODES:
-            nodes_to_remove.append(node)
-    graph.remove_nodes_from(nodes_to_remove)
-    avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+
+    avm.PREDEFINED_RESISTANCE = False
+
+    vessels = generate_nidus()
+    network = avm.edges_to_graph(vessels)
+
+    _, pressures, _, graph = avm.simulate(network, [], PRESSURES)
+    print_stats(graph)
+
+    compute_rupture_risk(pressures)
+
+    intranidal_nodes = list(range(FIRST_INTRANIDAL_NODE_ID, max_int_key(NODE_POS) + 1))
+    avm.display(graph, intranidal_nodes, NODE_POS, cmap_max=170)
     plt.show()
 
 

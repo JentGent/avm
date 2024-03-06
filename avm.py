@@ -16,7 +16,7 @@ PREDEFINED_RESISTANCE = True
 # x mmHg = x * MMHG_TO_DYNCM dyn/cm^2.
 MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
 
-# ABS_PRESSURE indicates whether or not to display calculated absolute pressures.
+# ABS_PRESSURE indicates whether or not to display calculated absolute pressures (NON-FUNCTIONAL).
 ABS_PRESSURE = False
 
 # vessel has vessel type IDs.
@@ -34,11 +34,11 @@ def calc_resistance(radius: float, length: float) -> float:
     """Uses the Hagen-Poiseuille equation to calculate resistance: resistance = (8 * length * viscosity) / (pi r^4)
     
     Args:
-        radius: The radius of the blood vessel.
-        length: The length of the blood vessel.
+        radius: The radius of the blood vessel (in cm)
+        length: The length of the blood vessel (in cm)
     
     Returns:
-        resistance: The resistance of the blood vessel.
+        resistance: The resistance of the blood vessel (in Pa * s / cm^3)
     """
     return 8 * length * VISCOSITY / np.pi / (radius ** 4)
 
@@ -328,8 +328,8 @@ def get_stats(graph: nx.DiGraph):
         stats: A dictionary of stats.
     """
     count = 0
-    flow_total, flow_min, flow_max = 0, 1000000000000000000000000, -1000000000000000000000000
-    pressure_total, pressure_min, pressure_max = 0, 1000000000000000000000000, -1000000000000000000000000
+    flow_total, flow_min, flow_max = 0, float('inf'), float('-inf')
+    pressure_total, pressure_min, pressure_max = 0, float('inf'), float('-inf')
 
     fi_count = 0
     fi_flow_total, fi_flow_min, fi_flow_max = 0, flow_min, flow_max
@@ -347,7 +347,7 @@ def get_stats(graph: nx.DiGraph):
     dr_flow_total, dr_flow_min, dr_flow_max = 0, flow_min, flow_max
     dr_pressure_total, dr_pressure_min, dr_pressure_max = 0, flow_min, flow_max
 
-    for node1, node2, attr in graph.edges(data=True):
+    for _, _, attr in graph.edges(data=True):
         count += 1
         flow_total += attr["flow"]
         flow_min = min(flow_min, attr["flow"])
@@ -391,24 +391,29 @@ def get_stats(graph: nx.DiGraph):
         "Number of vessels": count,
         "Flow stats": (flow_min, flow_total / count, flow_max) if count else 0,
         "Pressure stats": (pressure_min, pressure_total / count, pressure_max) if count else 0,
+        "spacer1": "",
 
         "Number of fistulous vessels": fi_count,
         "Fistulous flow stats": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max) if fi_count else 0,
         "Fistulous pressure stats": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max) if fi_count else 0,
+        "spacer2": "",
         
         "Number of plexiform vessels": pl_count,
         "Plexiform flow stats": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max) if pl_count else 0,
         "Plexiform pressure stats": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max) if pl_count else 0,
+        "spacer3": "",
 
         "Number of feeders": fe_count,
         "Feeder flow stats": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max) if fe_count else 0,
         "Feeder pressure stats": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max) if fe_count else 0,
         "Feeder total flow": fe_flow_total,
+        "spacer4": "",
 
         "Number of drainers": dr_count,
         "Drainer flow stats": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max) if dr_count else 0,
         "Drainer pressure stats": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max) if dr_count else 0,
         "Drainer total flow": dr_flow_total,
+        "spacer5": "",
     }
 
 def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
@@ -416,8 +421,8 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
 
     Args:
         graph: The graph.
-        all_edges: A list of (starting node, ending node) tuples.
-        p_ext: A dictionary of known node : pressure values.
+        all_edges: A list of (starting node, ending node) tuples, with resistances in Pa
+        p_ext: A dictionary of known node : pressure values (in dyn * s / cm^5)
 
     Returns:
         flow: The calculated flow values.
