@@ -391,29 +391,29 @@ def get_stats(graph: nx.DiGraph):
         "Number of vessels": count,
         "Flow stats (mL/min)": (flow_min, flow_total / count, flow_max) if count else 0,
         "Pressure stats (mmHg)": (pressure_min, pressure_total / count, pressure_max) if count else 0,
-        "spacer1": "",
+        # "spacer1": "",
 
         "Number of fistulous vessels": fi_count,
         "Fistulous flow stats (mL/min)": (fi_flow_min, fi_flow_total / fi_count, fi_flow_max) if fi_count else 0,
         "Fistulous pressure stats (mmHg)": (fi_pressure_min, fi_pressure_total / fi_count, fi_pressure_max) if fi_count else 0,
-        "spacer2": "",
+        # "spacer2": "",
         
         "Number of plexiform vessels": pl_count,
         "Plexiform flow stats (mL/min)": (pl_flow_min, pl_flow_total / pl_count, pl_flow_max) if pl_count else 0,
         "Plexiform pressure stats (mmHg)": (pl_pressure_min, pl_pressure_total / pl_count, pl_pressure_max) if pl_count else 0,
-        "spacer3": "",
+        # "spacer3": "",
 
         "Number of feeders": fe_count,
         "Feeder flow stats (mL/min)": (fe_flow_min, dr_flow_total / fe_count, fe_flow_max) if fe_count else 0,
         "Feeder pressure stats (mmHg)": (fe_pressure_min, fe_pressure_total / fe_count, fe_pressure_max) if fe_count else 0,
         "Feeder total flow (mL/min)": fe_flow_total,
-        "spacer4": "",
+        # "spacer4": "",
 
         "Number of drainers": dr_count,
         "Drainer flow stats (mL/min)": (dr_flow_min, dr_flow_total / dr_count, dr_flow_max) if dr_count else 0,
         "Drainer pressure stats (mmHg)": (dr_pressure_min, dr_pressure_total / dr_count, dr_pressure_max) if dr_count else 0,
         "Drainer total flow (mL/min)": dr_flow_total,
-        "spacer5": "",
+        # "spacer5": "",
     }
 
 def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
