@@ -281,10 +281,11 @@ def extract_stats(graph, node_pos):
     stats = avm.get_stats(graph)
     stats['Num columns'] = len(COLUMNS)
     stats['Num compartments'] = len(COLUMNS[0])
-    stats['Max rupture risk (%)'] = compute_rupture_risk(graph)
     stats['Central venous pressure (mmHg)'] = PRESSURES[(12, 13)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
     stats['Systemic pressure(mmHg)'] = PRESSURES[("SP", 1)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
     stats['Num intranidal nodes'] = max_int_key(node_pos) - FIRST_INTRANIDAL_NODE_ID + 1
+    stats['Num intranidal vessels'] = stats['Number of plexiform vessels'] + stats['Number of fistulous vessels']
+    stats['Num fistulas'] = stats['Number of fistulous vessels'] / (len(COLUMNS) + 1)
 
     fistulous_radius_sum = 0
     fistulous_length_sum = 0
@@ -302,6 +303,10 @@ def extract_stats(graph, node_pos):
     stats['Mean plexiform vessel radius (cm)'] = plexiform_radius_sum / stats["Number of plexiform vessels"]
     stats['Mean plexiform vessel length (cm)'] = plexiform_length_sum / stats["Number of plexiform vessels"]
 
+    # Outputs
+    stats['Max rupture risk (%)'] = compute_rupture_risk(graph)
+    stats['Total nidal flow (mL/min)'] = stats['Feeder total flow (mL/min)']
+
     return stats
 
 
@@ -309,7 +314,7 @@ def main():
 
     all_stats = []
 
-    for _ in range(1):
+    for _ in range(100):
 
         avm.PREDEFINED_RESISTANCE = False
 
@@ -330,6 +335,7 @@ def main():
 
     file_exists = os.path.isfile('graph_stats.csv')
     df.to_csv('graph_stats.csv', mode='a', index=False, header=not file_exists)
+    # df.to_csv('graph_stats.csv', mode='w', index=False, header=True)
 
 
 if __name__ == "__main__":
