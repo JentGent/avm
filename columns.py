@@ -7,22 +7,32 @@ import copy
 import math
 import pandas as pd
 import os
+import numpy as np
 
 # SPACING is the size of the space between each compartment, where each unit is the height of one node.
 SPACING = 3
 
 # PLEXIFORM_RADIUS is the radius of each plexiform vessel in cm.
-PLEXIFORM_RADIUS = 0.015  # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7390970/ says radius is about 100 microns
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7390970/ says radius is about 50 microns
 # https://www.sciencedirect.com/science/article/pii/S1078588417307360 says diameter is 265 microns
+# https://sci-hubtw.hkvisa.net/10.1111/j.1440-1827.1981.tb02813.x is the og source that says diameter 265 microns
+# https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
+PLEXIFORM_RADIUS = 0.01325
+PLEXIFORM_RADIUS_CURR = PLEXIFORM_RADIUS
 
 # PLEXIFORM_LENGTH is the length of each plexiform vessel in cm.
-PLEXIFORM_LENGTH = 0.05  # No source, 1996 paper had no source either
+# https://www.sciencedirect.com/science/article/pii/S1350453398000599 says 5 mm as length
+PLEXIFORM_LENGTH = 0.5  # No source, 1996 paper had no source either
+PLEXIFORM_LENGTH_CURR = PLEXIFORM_LENGTH
 
 # FISTULOUS_RADIUS is the radius of each fistulous vessel in cm.
-FISTULOUS_RADIUS = 0.1
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9537653/ fistulas with diameter 200 microns
+FISTULOUS_RADIUS = 0.05
+FISTULOUS_RADIUS_CURR = FISTULOUS_RADIUS
 
 # FISTULOUS_LENGTH is the length of each fistulous vessel in cm.
-FISTULOUS_LENGTH = 4
+FISTULOUS_LENGTH = 0.5
+FISTULOUS_LENGTH_CURR = FISTULOUS_LENGTH
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -82,37 +92,6 @@ VESSELS = [
     ["DV3", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
 ]
 
-# COLUMNS specifies the arrangement of the nodes in the nidus.
-# It must be a rectangular grid of size m x n.
-# m is the number of nidus columns.
-# n is the number of compartments in each nidus column.
-# Each row in COLUMNS represents one nidus column.
-# If the first row is [3, 4, 5, 6], this means that the first nidus column has 3 nodes in the first compartment, 4 nodes in the second compartment, etc.
-COLUMNS = [
-    [2, 3, 2],
-    [5, 10, 5],
-    [10, 15, 8],
-    [15, 20, 10],
-    [10, 15, 8],
-    [5, 10, 5],
-    [2, 3, 2]
-]
-
-# EDGES specifies the edges that connect adjacent columns.
-# It must be a rectangular grid of size m x n.
-# m is the number of nidus columns.
-# n is the number of compartments in each nidus column.
-# If the first row is [3, 4, 5, 6], this means that the first nidus column has 3 edges starting from the first compartment, 4 edges starting from the second compartment, etc.
-# Each edge starts in a compartment and ends in the corresponding compartment of the nidus column directly to the right. 
-EDGES = [
-    [5, 10, 5, 10],
-    [20, 30, 20],
-    [30, 40, 20],
-    [30, 40, 20],
-    [20, 30, 20],
-    [5, 10, 5]
-]
-
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
     ("SP", 1): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
@@ -125,6 +104,17 @@ PRESSURES = {
     ("DV3", 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
     (12, 13): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
 }
+
+PRESSURE_SETS = [
+    [74, 47, 47, 50, 50, 17, 17, 17, 6],
+    [74, 47, 47, 50, 50, 17, 17, 17, 12],
+    [70, 45, 45, 48, 48, 15, 15, 15, 5],
+    [70, 45, 45, 48, 48, 15, 15, 15, 10],
+    [50, 32, 32, 34, 34, 12, 12, 12, 5],
+    [50, 32, 32, 34, 34, 12, 12, 12, 8],
+    [25, 15, 15, 16, 16, 8, 8, 8, 4],
+    [25, 15, 15, 16, 16, 8, 8, 8, 6],
+]
 
 
 def lerp(x, a, b, c, d):
@@ -151,12 +141,54 @@ def max_int_key(dict):
     return max(k for k in dict.keys() if type(k) == int)
 
 
+def add_plexiform(vessels, node1, node2):
+    vessels.append([node1, node2, PLEXIFORM_RADIUS_CURR, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+
+
+def add_fistulous(vessels, node1, node2):
+    vessels.append([node1, node2, FISTULOUS_RADIUS_CURR, FISTULOUS_LENGTH, -1, "", avm.vessel.fistulous])
+
+
+def generate_configuration():
+    """Specifies the arrangement of the nodes in the nidus.
+    The output is a rectangular grid of size m x n.
+    m is the number of nidus columns.
+    n is the number of compartments in each nidus column.
+    Each row represents one nidus column.
+    If the first row is [3, 4, 5, 6], this means that the first nidus column has 3 nodes in the first compartment, 4 nodes in the second compartment, etc.
+    """
+    columns = []
+    m = random.randint(5, 10)
+    n = random.randint(3, 6)
+    columns.append([random.randint(2, 3) for _ in range(n)])
+    for i in range(1, m):
+        delta = 1
+        if i >= math.ceil(m / 2):
+            delta = -1
+        columns.append([max(columns[-1][i] + random.randint(0, 4) * delta, 2) for i in range(n)])
+
+    global PLEXIFORM_RADIUS_CURR
+    global PLEXIFORM_LENGTH_CURR
+    global FISTULOUS_RADIUS_CURR
+    global FISTULOUS_LENGTH_CURR
+    PLEXIFORM_RADIUS_CURR = max(0.0100, random.normalvariate(PLEXIFORM_RADIUS, (PLEXIFORM_RADIUS - 0.0100) / 3))
+    PLEXIFORM_LENGTH_CURR = max(0.25, random.normalvariate(PLEXIFORM_LENGTH, (PLEXIFORM_LENGTH - 0.25) / 3))
+    FISTULOUS_RADIUS_CURR = max(PLEXIFORM_RADIUS_CURR, random.normalvariate(FISTULOUS_RADIUS, (FISTULOUS_RADIUS - PLEXIFORM_RADIUS_CURR) / 3))
+    FISTULOUS_LENGTH_CURR = max(0.25, random.normalvariate(FISTULOUS_LENGTH, (FISTULOUS_LENGTH - 0.25) / 3))
+
+    global PRESSURES
+    random_pressure_set = random.choice(PRESSURE_SETS)
+    for (key, _), pressure in zip(PRESSURES.items(), random_pressure_set):
+        PRESSURES[key] = pressure * avm.MMHG_TO_DYN_PER_SQUARE_CM
+    return columns
+
+
 def generate_nodes():
     """Generates the nodes in the nidus."""
-    nodes = copy.deepcopy(COLUMNS)
+    nodes = generate_configuration()
     node_pos = copy.deepcopy(NODE_POS)
     node_id = max_int_key(node_pos) + 1
-    for i, column in enumerate(COLUMNS):
+    for i, column in enumerate(nodes):
         height = sum(column) + (len(column) - 1) * SPACING  # The height (in number of nodes) of the column
         y = 0
         for j, compartment in enumerate(column):
@@ -172,15 +204,17 @@ def generate_nodes():
 
 
 def generate_intranidal_vessels(vessels, nodes):
-    """Generates the intranidal vessels."""
+    """Generates the intranidal vessels. Ensures that each node has at least two edges."""
     for i, column in enumerate(nodes[:-1]):
-        for j in range(len(column)):
-            for _ in range(EDGES[i][j]):
-                start_index = random.randint(0, len(nodes[i][j]) - 1)  # Uniform random distribution to choose start node
-                start_node_id = nodes[i][j][start_index]
-                end_index = round(lerp(start_index, 0, len(nodes[i][j]) - 1, 0, len(nodes[i + 1][j]) - 1))
-                _, end_node_id = choose_norm(nodes[i + 1][j], end_index, 2)  # Normal distribution centered around end index with StDev of 2
-                vessels.append([start_node_id, end_node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+        for j, _ in enumerate(column):
+            small, large = (nodes[i][j].copy(), nodes[i + 1][j].copy()) if len(nodes[i][j]) < len(nodes[i + 1][j]) else (nodes[i + 1][j].copy(), nodes[i][j].copy())
+            for node in small:
+                partner = random.choice(large)
+                large.remove(partner)
+                add_plexiform(vessels, node, partner)
+            for node in large:
+                partner = random.choice(small)
+                add_plexiform(vessels, node, partner)
     return vessels
 
 
@@ -190,50 +224,54 @@ def generate_extranidal_vessels(vessels, nodes):
         for j, compartment in enumerate(column):
             for node_id in compartment:
                 if i == 0:
-                    if j == 0:
-                        vessels.append(["AF3", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
-                    elif j == 1:
-                        vessels.append(["AF2", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                    if j < (len(column) - 1) * 1/3:
+                        add_plexiform(vessels, "AF3", node_id)
+                    elif j < (len(column) - 1) * 2/3:
+                        add_plexiform(vessels, "AF2", node_id)
                     else:
-                        vessels.append(["AF1", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
-                elif i == len(COLUMNS) - 1:
-                    if j == 0:
-                        vessels.append(["DV3", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
-                    elif j == 1:
-                        vessels.append(["DV2", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                        add_plexiform(vessels, "AF1", node_id)
+                elif i == len(nodes) - 1:
+                    if j < (len(column) - 1) * 1/3:
+                        add_plexiform(vessels, "DV3", node_id)
+                    elif j < (len(column) - 1) * 2/3:
+                        add_plexiform(vessels, "DV2", node_id)
                     else:
-                        vessels.append(["DV1", node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
-    vessels.append(["AF4", 74, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+                        add_plexiform(vessels, "DV1", node_id)
+    add_plexiform(vessels, "AF4", nodes[len(nodes) // 2][0][0])
+    if len(nodes) % 2 == 0:
+        add_plexiform(vessels, "AF4", nodes[len(nodes) // 2 - 1][0][0])
     return vessels
 
 
 def generate_cross_compartment_vessels(vessels, nodes, n):
-    """Generates n vessels between any two intranidal nodes."""
+    """Generates n vessels between random nodes of different compartments."""
+    if len(nodes[0]) < 2:
+        return vessels
     for _ in range(n):
         start_col = random.randint(0, len(nodes) - 2)
         start_compartment = random.randint(0, len(nodes[start_col]) - 1)
         start_node_id = random.choice(nodes[start_col][start_compartment])
-        end_compartment = random.randint(0, len(nodes[start_col + 1]) - 1)
+        end_compartment = random.choice([i for i in range(len(nodes[start_col + 1])) if i != start_compartment])
         end_node_id = random.choice(nodes[start_col + 1][end_compartment])
-        vessels.append([start_node_id, end_node_id, PLEXIFORM_RADIUS, PLEXIFORM_LENGTH, -1, "", avm.vessel.plexiform])
+        add_plexiform(vessels, start_node_id, end_node_id)
     return vessels
 
 
 def generate_fistulous_vessels(vessels, nodes):
     """Generates the fistulous vessels as a continuous path through the nidus."""
-    compartment = 1
+    compartment = len(nodes[0]) // 2
     start_index = 0
     for i in range(len(nodes)):
         if i == 0:
             start_node_id = "AF2"
             end_index = random.randint(0, len(nodes[i][compartment]) - 1)
-            vessels.append(["AF2", nodes[i][compartment][end_index], FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "F", avm.vessel.fistulous])
+            vessels.append(["AF2", nodes[i][compartment][end_index], FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "", avm.vessel.fistulous])
             start_index = end_index
         else:
             start_node_id = nodes[i - 1][compartment][start_index]
-            end_index = round(lerp(start_index, 0, len(nodes[i - 1][compartment]) - 1, 0, len(nodes[i][compartment]) - 1))
+            end_index = lerp(start_index, 0, len(nodes[i - 1][compartment]) - 1, 0, len(nodes[i][compartment]) - 1)
             end_index, end_node_id = choose_norm(nodes[i][compartment], end_index, 2)
-            vessels.append([start_node_id, end_node_id, FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "F", avm.vessel.fistulous])
+            vessels.append([start_node_id, end_node_id, FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "", avm.vessel.fistulous])
             start_index = end_index
     vessels.append([nodes[-1][compartment][start_index], "DV2", FISTULOUS_RADIUS, FISTULOUS_LENGTH, -1, "", avm.vessel.fistulous])
     return vessels
@@ -246,7 +284,7 @@ def generate_nidus():
     vessels = generate_extranidal_vessels(vessels, nodes)
     vessels = generate_cross_compartment_vessels(vessels, nodes, 20)
     vessels = generate_fistulous_vessels(vessels, nodes)  # Must go last to overwrite previous edges
-    return node_pos, vessels
+    return nodes, node_pos, vessels
 
 
 def print_stats(graph):
@@ -258,7 +296,9 @@ def print_stats(graph):
             print('')
     print(f'Plexiform resistance (dyn * s / cm^5): {avm.calc_resistance(PLEXIFORM_RADIUS, PLEXIFORM_LENGTH)}')
     print(f'Fistulous resistance (dyn * s / cm^5): {avm.calc_resistance(FISTULOUS_RADIUS, FISTULOUS_LENGTH)}')
-    print(f'Max rupture risk: {compute_rupture_risk(graph)}%')
+    mean_risk, max_risk = compute_rupture_risk(graph)
+    print(f'Mean rupture risk: {mean_risk}%')
+    print(f'Max rupture risk: {max_risk}%')
 
 
 def compute_rupture_risk(graph):
@@ -272,39 +312,35 @@ def compute_rupture_risk(graph):
     risks = []
     for pressure in pressures:
         risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
-        risk = round(max(risk, 0))
+        risk = max(0, min(risk, 100))
         risks.append(risk)
-    return max(risks)
+    return np.mean(risks), max(risks)
 
 
-def extract_stats(graph, node_pos):
+def extract_stats(graph, nodes, node_pos):
     stats = avm.get_stats(graph)
-    stats['Num columns'] = len(COLUMNS)
-    stats['Num compartments'] = len(COLUMNS[0])
-    stats['Central venous pressure (mmHg)'] = PRESSURES[(12, 13)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
-    stats['Systemic pressure(mmHg)'] = PRESSURES[("SP", 1)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['Num columns'] = len(nodes)
+    stats['Num compartments'] = len(nodes[0])
     stats['Num intranidal nodes'] = max_int_key(node_pos) - FIRST_INTRANIDAL_NODE_ID + 1
     stats['Num intranidal vessels'] = stats['Number of plexiform vessels'] + stats['Number of fistulous vessels']
-    stats['Num fistulas'] = stats['Number of fistulous vessels'] / (len(COLUMNS) + 1)
+    stats['Num fistulas'] = stats['Number of fistulous vessels'] / (len(nodes) + 1)
+    stats['Fistulous vessel radius (cm)'] = FISTULOUS_RADIUS_CURR
+    stats['Fistulous vessel length (cm)'] = FISTULOUS_LENGTH_CURR
+    stats['Plexiform vessel radius (cm)'] = PLEXIFORM_RADIUS_CURR
+    stats['Plexiform vessel length (cm)'] = PLEXIFORM_LENGTH_CURR
 
-    fistulous_radius_sum = 0
-    fistulous_length_sum = 0
-    plexiform_radius_sum = 0
-    plexiform_length_sum = 0
-    for _, _, attr in graph.edges(data=True):
-        if attr["type"] == avm.vessel.fistulous:
-            fistulous_radius_sum += attr["radius"]
-            fistulous_length_sum += attr["length"]
-        if attr["type"] == avm.vessel.plexiform:
-            plexiform_radius_sum += attr["radius"]
-            plexiform_length_sum += attr["length"]
-    stats['Mean fistulous vessel radius (cm)'] = fistulous_radius_sum / stats["Number of fistulous vessels"]
-    stats['Mean fistulous vessel length (cm)'] = fistulous_length_sum / stats["Number of fistulous vessels"]
-    stats['Mean plexiform vessel radius (cm)'] = plexiform_radius_sum / stats["Number of plexiform vessels"]
-    stats['Mean plexiform vessel length (cm)'] = plexiform_length_sum / stats["Number of plexiform vessels"]
+    stats['Systemic pressure (mmHg)'] = PRESSURES[("SP", 1)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['AF1 (mmHg)'] = PRESSURES[(3, "AF1")] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['AF2 (mmHg)'] = PRESSURES[(6, "AF2")] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['AF3 (mmHg)'] = PRESSURES[(6, "AF3")] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['AF4 (mmHg)'] = PRESSURES[(9, "AF4")] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['DV (mmHg)'] = PRESSURES[("DV1", 11)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
+    stats['Central venous pressure (mmHg)'] = PRESSURES[(12, 13)] / avm.MMHG_TO_DYN_PER_SQUARE_CM
 
     # Outputs
-    stats['Max rupture risk (%)'] = compute_rupture_risk(graph)
+    mean_risk, max_risk = compute_rupture_risk(graph)
+    stats['Mean rupture risk (%)'] = mean_risk
+    stats['Max rupture risk (%)'] = max_risk
     stats['Total nidal flow (mL/min)'] = stats['Feeder total flow (mL/min)']
 
     return stats
@@ -314,28 +350,28 @@ def main():
 
     all_stats = []
 
-    for _ in range(100):
+    for i in range(1):
 
         avm.PREDEFINED_RESISTANCE = False
 
-        node_pos, vessels = generate_nidus()
+        nodes, node_pos, vessels = generate_nidus()
         network = avm.edges_to_graph(vessels)
 
         _, _, _, graph = avm.simulate(network, [], PRESSURES)
         print_stats(graph)
+        print(f'Iteration {i}')
 
-        stats = extract_stats(graph, node_pos)
+        stats = extract_stats(graph, nodes, node_pos)
         all_stats.append(stats)
 
+        df = pd.DataFrame([stats])
+
+        file_exists = os.path.isfile('graph_stats.csv')
+        df.to_csv('graph_stats.csv', mode='a', index=False, header=not file_exists)
+
         # intranidal_nodes = list(range(FIRST_INTRANIDAL_NODE_ID, max_int_key(node_pos) + 1))
-        # avm.display(graph, intranidal_nodes, node_pos, color_is_flow=True)
+        # avm.display(graph, intranidal_nodes, node_pos, cmap_max=74, color_is_flow=False)
         # plt.show()
-
-    df = pd.DataFrame(all_stats)
-
-    file_exists = os.path.isfile('graph_stats.csv')
-    df.to_csv('graph_stats.csv', mode='a', index=False, header=not file_exists)
-    # df.to_csv('graph_stats.csv', mode='w', index=False, header=True)
 
 
 if __name__ == "__main__":
