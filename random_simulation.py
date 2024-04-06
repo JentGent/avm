@@ -2,6 +2,8 @@
 
 import avm
 import numpy as np
+import matplotlib.pyplot as plt
+import generate
 
 # NODE_POS lists the positions of specific nodes in the graph.
 NODE_POS = {
@@ -98,11 +100,12 @@ INTRANIDAL_NODES = list(range(14, 14 + NUM_INTRANIDAL_NODES))
 
 def main():
     network = avm.edges_to_graph(VESSELS)
-    network = avm.generate_nidus(network, INTRANIDAL_NODES, 1000)
+    network = generate.gilbert(network, INTRANIDAL_NODES, 1000)
     flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
     for key, value in avm.get_stats(graph).items():
         print(f"{key}: {value}")
     avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+    plt.show()
 
 
 if __name__ == "__main__":

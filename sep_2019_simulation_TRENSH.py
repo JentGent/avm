@@ -16,20 +16,7 @@ PLEXIFORM_RESISTANCE = 81600
 SIMULATIONS = []
 
 # NODE_POS lists the positions of specific nodes in the graph.
-NODE_POS = {
-    1: [10, -200],
-    2: [50, -250],
-    3: [75, -300],
-    4: [50, -200],
-    5: [100, -100],
-    6: [150, -275],
-    7: [150, -120],
-    8: [500, -120],
-    9: [350, -100],
-    10: [550, -100],
-    11: [580, -300],
-    12: [580, -590],
-    13: [300, -590],
+NODE_POS = avm.NODE_POS_TEMPLATE | {
     14: [275, -370],
     15: [339, -359],
     16: [425, -350],
@@ -80,46 +67,14 @@ NODE_POS = {
     61: [492, -187],
     62: [499, -408],
     63: [499, -480],
-    "SP": [10, -590],
-    "AF1": [200, -500],
-    "AF2": [200, -370],
-    "AF3": [200, -200],
-    "AF4": [350, -150],
-    "DV1": [501, -543],
-    "DV2": [500, -350],
-    "DV3": [500, -250],
 }
 
 # VESSELS elements are formatted like [first node, second node, radius (cm), length (cm), resistance (dyn s / cm^5), label, fistulous (optional)].
-VESSELS = [
-    [13, "SP", 0.75, 10, 3.2, "superior vena cava"],
-    ["SP", 1, 1, 10, 1, "aortic arch"],
-    [1, 2, 0.35, 10, 67.9, "SCA"],
-    [1, 4, 0.35, 10, 67.9, "CCA"],
-    [4, 5, 0.2, 10, 637.5, "ECA"],
-    [5, 9, 0.01, 0.1, 1000000, ""],
-    [9, 10, 0.01, 0.1, 1000000, ""],
-    [10, 11, 0.125, 10, 4177.9, ""],
-    [12, 13, 0.4, 20, 79.7, "jugular veins"],
-    [4, 6, 0.25, 20, 522, "ICA"],
-    [2, 3, 0.15, 25, 5037, "VA"],
-    [6, 7, 0.1, 10, 10200, ""],
-    [7, 8, 0.01, 0.1, 1000000, ""],
-    [8, 11, 0.125, 10, 4177.9, ""],
-    [11, 12, 0.25, 10, 261, "dural venous sinuses"],
-
-    [3, "AF1", 0.125, 5.2, 2210, "PCA", avm.vessel.feeder],
-    [6, "AF2", 0.15, 3.7, 745.5, "MCA", avm.vessel.feeder],
-    [6, "AF3", 0.025, 3.7, 15725000, "ACA", avm.vessel.feeder],
-    [9, "AF4", 0.0125, 3, 12750000, "TFA", avm.vessel.feeder],
-
+VESSELS = avm.VESSELS_TEMPLATE + [
     ["AF2", 14, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
     [14, 15, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
     [15, 16, 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
     [16, "DV2", 0.1, 4, FISTULOUS_RESISTANCE, "", avm.vessel.fistulous],
-    ["DV1", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
-    ["DV2", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
-    ["DV3", 11, 0.25, 5, 130.5, "", avm.vessel.drainer],
 
     ["AF3", 17, 0.05, 5, PLEXIFORM_RESISTANCE, "", avm.vessel.plexiform],
     ["AF3", 18, 0.05, 5, PLEXIFORM_RESISTANCE, "", avm.vessel.plexiform],
@@ -374,8 +329,9 @@ def update(frame):
 def main():
     fig, ax = plt.subplots(figsize = (8, 8))
     ax.set_aspect("equal")
-    ani = FuncAnimation(fig, update, frames = len(injections), interval = 100)
-    ani.save("trensh.mp4", writer = "ffmpeg")
+    update(0)
+    # ani = FuncAnimation(fig, update, frames = len(injections), interval = 100)
+    # ani.save("trensh.mp4", writer = "ffmpeg")
     plt.show()
 
 

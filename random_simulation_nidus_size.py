@@ -3,6 +3,7 @@
 import avm
 import numpy as np
 import matplotlib.pyplot as plt
+import generate
 
 # FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
 FISTULOUS_RESISTANCE = 2300
@@ -125,7 +126,7 @@ def main():
         INTRANIDAL_NODES = list(range(21, 21 + n))
         for iter in range(num_iters):
             network = avm.edges_to_graph(VESSELS)
-            network = avm.generate_nidus(network, INTRANIDAL_NODES, size)
+            network = generate.gilbert(network, INTRANIDAL_NODES, size)
             flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
             stats = avm.get_stats(graph)
             fe_total_flow += stats["Feeder total flow"]

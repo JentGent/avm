@@ -5,6 +5,7 @@ import numpy as np
 from scipy.special import comb
 import scipy.optimize as spop
 import matplotlib.pyplot as plt
+import generate
 
 # FISTULOUS_RESISTANCE is just for testing purposes; the reported value in the paper is 4080.
 FISTULOUS_RESISTANCE = 4080
@@ -195,7 +196,7 @@ def main():
     # network = avm.generate_nidus(network, INTRANIDAL_NODES, 1000)
     # 47
     blocks = [4, 3, 3] + [10, 10, 10, 10, 7]
-    network = avm.generate_nidus_stochastic(network, INTRANIDAL_NODES, blocks, generate_stochastic_matrix(blocks, 1000))
+    network = generate.stochastic(network, INTRANIDAL_NODES, blocks, generate_stochastic_matrix(blocks, 1000))
     # network = avm.generate_nidus_linear(network, INTRANIDAL_NODES)
     flow, pressure, _, graph = avm.simulate(network, INTRANIDAL_NODES, PRESSURES)
 
