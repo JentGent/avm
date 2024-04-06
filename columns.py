@@ -97,9 +97,10 @@ def main():
                 _, _, _, graph, *error = avm.simulate(network, [], injections[label], CALCULATE_ERROR)
                 error = error if error else None
                 stats = extract_stats(graph, num_columns, node_pos, injections[label][(12, 13)])
-            stats["Label"] = label
-            stats["Injection pressure (mmHg)"] = float(label[4:6]) if label[0:2] == "DV" else 0
-            stats["Blood pressure"] = label[12:] if label[0:2] == "DV" else label
+            stats["Injection location"] = label[0]
+            stats["Injection pressure (mmHg)"] = label[1]
+            stats["Blood pressure hypotension"] = label[2]
+            stats["CVP pressure"] = label[3]
             stats["Num columns"] = num_columns
             stats["Num compartments"] = num_compartments
             for key, value in stats.items():
