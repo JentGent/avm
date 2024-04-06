@@ -32,48 +32,6 @@ def max_int_key(dict: dict) -> int:
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max_int_key(avm.NODE_POS_TEMPLATE) + 1
 
-def print_stats(graph, p_min):
-    print("Stats are shown as (min, mean, max)\n")
-    for key, value in avm.get_stats(graph).items():
-        if value:
-            print(f"{key}: {value}")
-        else:
-            print("")
-    mean_risk, max_risk = compute_rupture_risk(graph, p_min)
-    print(f"Mean rupture risk: {mean_risk}%")
-    print(f"Max rupture risk: {max_risk}%")
-
-
-def compute_rupture_risk(graph, p_min):
-    """Computes and prints the rupture risk for each vessel."""
-    pressures = []
-    for _, _, attr in graph.edges(data=True):
-        if attr["type"] == avm.vessel.fistulous or attr["type"] == avm.vessel.plexiform:
-            pressures.append(attr["pressure"])
-    p_max = 74  # mmHg
-    p_min /= avm.MMHG_TO_DYN_PER_SQUARE_CM
-    risks = []
-    for pressure in pressures:
-        risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
-        risk = max(0, min(risk, 100))
-        risks.append(risk)
-    return np.mean(risks), max(risks)
-
-
-def extract_stats(graph, num_columns, node_pos, p_min):
-    stats = avm.get_stats(graph)
-    stats["Num intranidal nodes"] = max_int_key(node_pos) - FIRST_INTRANIDAL_NODE_ID + 1
-    stats["Num intranidal vessels"] = stats["Num plexiform"] + stats["Num fistulous"]
-    stats["Num fistulas"] = stats["Num fistulous"] / (num_columns + 1)
-
-    # Outputs
-    mean_risk, max_risk = compute_rupture_risk(graph, p_min)
-    stats["Mean rupture risk (%)"] = mean_risk
-    stats["Max rupture risk (%)"] = max_risk
-    stats["Total nidal flow (mL/min)"] = stats["Feeder total flow (mL/min)"]
-
-    return stats
-
 def main():
     avm.PREDEFINED_RESISTANCE = False
     
@@ -92,11 +50,11 @@ def main():
             error = error if error else None
         for j, label in enumerate(injections.keys()):
             if SIMULATE_IN_BATCHES:
-                stats = extract_stats(graphs[j], num_columns, node_pos, injections[label][(12, 13)])
+                stats = avm.get_stats(graphs[j], injections[label][(12, 13)])
             else:
                 _, _, _, graph, *error = avm.simulate(network, [], injections[label], CALCULATE_ERROR)
                 error = error if error else None
-                stats = extract_stats(graph, num_columns, node_pos, injections[label][(12, 13)])
+                stats = avm.get_stats(graph, injections[label][(12, 13)])
             stats["Injection location"] = label[0]
             stats["Injection pressure (mmHg)"] = label[1]
             stats["Blood pressure hypotension"] = label[2]
@@ -115,7 +73,7 @@ def main():
     
     file_path = Path(__file__).parent / f"{FILE_NAME}.csv"
     data = pd.read_csv(file_path)
-    print(data["Total nidal flow (mL/min)"].mean())
+    print(data["Drainer total flow (mL/min)"].mean())
 
     print(f"{time.time() - start_time} seconds")
 

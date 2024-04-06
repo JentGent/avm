@@ -4,6 +4,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 from typing import Literal
+import math
 
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.035
@@ -325,7 +326,30 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
         return flow, pressure, all_edges, graph, error
     return flow, pressure, all_edges, graph
 
-def get_stats(graph: nx.DiGraph):
+def calc_filling(graph: nx.Graph, intranidal_nodes, pressure, all_edges, injection_pressure, num_intranidal_vessels):
+    """Calculates the percent of nidus vessels that are back-filled."""
+    filled = 0
+    for i, p in enumerate(pressure):
+        if all_edges[i][0] in intranidal_nodes and all_edges[i][1] in intranidal_nodes and p < injection_pressure:
+            filled += 1
+    return filled / num_intranidal_vessels * 100
+
+def compute_rupture_risk(graph, p_min):
+    """Computes and prints the rupture risk for each vessel."""
+    pressures = []
+    for _, _, attr in graph.edges(data=True):
+        if attr["type"] == vessel.fistulous or attr["type"] == vessel.plexiform:
+            pressures.append(attr["pressure"])
+    p_max = 74  # mmHg
+    p_min /= MMHG_TO_DYN_PER_SQUARE_CM
+    risks = []
+    for pressure in pressures:
+        risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
+        risk = max(0, min(risk, 100))
+        risks.append(risk)
+    return np.mean(risks), max(risks)
+
+def get_stats(graph: nx.DiGraph, p_min = 6):
     """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`.
     
     Args:
@@ -369,7 +393,12 @@ def get_stats(graph: nx.DiGraph):
     dr_radius_total, dr_radius_min, dr_radius_max = 0, flow_min, flow_max
     dr_length_total, dr_length_min, dr_length_max = 0, flow_min, flow_max
 
-    for _, _, attr in graph.edges(data=True):
+    nodes = set()
+    intranidal_nodes = set()
+
+    for n1, n2, attr in graph.edges(data=True):
+        nodes.add(n1)
+        nodes.add(n2)
         count += 1
         flow_total += attr["flow"]
         flow_min = min(flow_min, attr["flow"])
@@ -387,6 +416,8 @@ def get_stats(graph: nx.DiGraph):
         length_min = min(length_min, attr["length"])
         length_max = max(length_max, attr["length"])
         if attr["type"] == vessel.fistulous:
+            intranidal_nodes.add(n1)
+            intranidal_nodes.add(n2)
             fi_count += 1
             fi_flow_total += attr["flow"]
             fi_flow_min = min(fi_flow_min, attr["flow"])
@@ -404,6 +435,8 @@ def get_stats(graph: nx.DiGraph):
             fi_length_min = min(fi_length_min, attr["length"])
             fi_length_max = max(fi_length_max, attr["length"])
         elif attr["type"] == vessel.plexiform:
+            intranidal_nodes.add(n1)
+            intranidal_nodes.add(n2)
             pl_count += 1
             pl_flow_total += attr["flow"]
             pl_flow_min = min(pl_flow_min, attr["flow"])
@@ -454,7 +487,15 @@ def get_stats(graph: nx.DiGraph):
             dr_length_total += attr["length"]
             dr_length_min = min(dr_length_min, attr["length"])
             dr_length_max = max(dr_length_max, attr["length"])
+    
+    mean_risk, max_risk = compute_rupture_risk(graph, p_min)
+
     return {
+        "Num intranidal nodes": len(intranidal_nodes),
+        "Num nodes": len(nodes),
+        "Mean rupture risk (%)": mean_risk,
+        "Max rupture risk (%)": max_risk,
+        "Num intranidal vessels": fi_count + pl_count,
         "Num vessels": count,
 
         "Flow min (mL/min)": round(flow_min, ROUND_DECIMALS) if count else 0,
