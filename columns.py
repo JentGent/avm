@@ -10,6 +10,7 @@ import os
 import numpy as np
 import generate
 import time
+from pathlib import Path
 from injections import injections
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
@@ -19,7 +20,7 @@ CALCULATE_ERROR = True
 SIMULATE_IN_BATCHES = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 1
+ITERATIONS = 10
 
 # FILE_NAME is the name of the file (minus the ".csv" ending) to save data to.
 FILE_NAME = "test"
@@ -80,8 +81,8 @@ def main():
     injection_pressures = list(injections.values())
     for i in range(1, 1 + ITERATIONS):
         all_stats = {}
-        num_compartments = random.randint(3, 12)
-        num_columns = random.randint(5, 100)
+        num_compartments = random.randint(3, 9)
+        num_columns = random.randint(5, 10)
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
         network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
@@ -110,6 +111,10 @@ def main():
         df = pd.DataFrame(all_stats)
         file_exists = os.path.isfile(f"{FILE_NAME}.csv")
         df.to_csv(f"{FILE_NAME}.csv", mode="a", index=False, header=not file_exists)
+    
+    file_path = Path(__file__).parent / f"{FILE_NAME}.csv"
+    data = pd.read_csv(file_path)
+    print(data["Total nidal flow (mL/min)"].mean())
 
     print(f"{time.time() - start_time} seconds")
 

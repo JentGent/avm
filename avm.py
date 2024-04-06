@@ -456,46 +456,118 @@ def get_stats(graph: nx.DiGraph):
             dr_length_max = max(dr_length_max, attr["length"])
     return {
         "Num vessels": count,
-        "Flow (mL/min)": (round(flow_min, ROUND_DECIMALS), round(flow_total / count, ROUND_DECIMALS), round(flow_max, ROUND_DECIMALS)) if count else 0,
-        "Pressure (mmHg)": (round(pressure_min, ROUND_DECIMALS), round(pressure_total / count, ROUND_DECIMALS), round(pressure_max, ROUND_DECIMALS)) if count else 0,
-        "Resistance (dyn*s/cm^5)": (round(resistance_min, ROUND_DECIMALS), round(resistance_total / count, ROUND_DECIMALS), round(resistance_max, ROUND_DECIMALS)) if count else 0,
-        "Radius (cm)": (round(radius_min, ROUND_DECIMALS), round(radius_total / count, ROUND_DECIMALS), round(radius_max, ROUND_DECIMALS)) if count else 0,
-        "Length (cm)": (round(length_min, ROUND_DECIMALS), round(length_total / count, ROUND_DECIMALS), round(length_max, ROUND_DECIMALS)) if count else 0,
-        # "spacer1": "",
+
+        "Flow min (mL/min)": round(flow_min, ROUND_DECIMALS) if count else 0,
+        "Flow mean (mL/min)": round(flow_total / count, ROUND_DECIMALS) if count else 0,
+        "Flow max (mL/min)": round(flow_max, ROUND_DECIMALS) if count else 0,
+
+        "Pressure min (mmHg)": round(pressure_min, ROUND_DECIMALS) if count else 0,
+        "Pressure mean (mmHg)": round(pressure_total / count, ROUND_DECIMALS) if count else 0,
+        "Pressure max (mmHg)": round(pressure_max, ROUND_DECIMALS) if count else 0,
+
+        "Resistance min (dyn*s/cm^5)": round(resistance_min, ROUND_DECIMALS) if count else 0,
+        "Resistance mean (dyn*s/cm^5)": round(resistance_total / count, ROUND_DECIMALS) if count else 0,
+        "Resistance max (dyn*s/cm^5)": round(resistance_max, ROUND_DECIMALS) if count else 0,
+
+        "Radius min (cm)": round(radius_min, ROUND_DECIMALS) if count else 0,
+        "Radius mean (cm)": round(radius_total / count, ROUND_DECIMALS) if count else 0,
+        "Radius max (cm)": round(radius_max, ROUND_DECIMALS) if count else 0,
+
+        "Length min (cm)": round(length_min, ROUND_DECIMALS) if count else 0,
+        "Length mean (cm)": round(length_total / count, ROUND_DECIMALS) if count else 0,
+        "Length max (cm)": round(length_max, ROUND_DECIMALS) if count else 0,
 
         "Num fistulous": fi_count,
-        "Fistulous flow (mL/min)": (round(fi_flow_min, ROUND_DECIMALS), round(fi_flow_total / fi_count, ROUND_DECIMALS), round(fi_flow_max, ROUND_DECIMALS)) if fi_count else 0,
-        "Fistulous pressure (mmHg)": (round(fi_pressure_min, ROUND_DECIMALS), round(fi_pressure_total / fi_count, ROUND_DECIMALS), round(fi_pressure_max, ROUND_DECIMALS)) if fi_count else 0,
-        "Fistulous resistance (dyn*s/cm^5)": (round(fi_resistance_min, ROUND_DECIMALS), round(fi_resistance_total / fi_count, ROUND_DECIMALS), round(fi_resistance_max, ROUND_DECIMALS)) if fi_count else 0,
-        "Fistulous radius (cm)": (round(fi_radius_min, ROUND_DECIMALS), round(fi_radius_total / fi_count, ROUND_DECIMALS), round(fi_radius_max, ROUND_DECIMALS)) if fi_count else 0,
-        "Fistulous length (cm)": (round(fi_length_min, ROUND_DECIMALS), round(fi_length_total / fi_count, ROUND_DECIMALS), round(fi_length_max, ROUND_DECIMALS)) if fi_count else 0,
-        # "spacer2": "",
-        
+
+        "Fistulous flow min (mL/min)": round(fi_flow_min, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous flow mean (mL/min)": round(fi_flow_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous flow max (mL/min)": round(fi_flow_max, ROUND_DECIMALS) if fi_count else 0,
+
+        "Fistulous pressure min (mmHg)": round(fi_pressure_min, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous pressure mean (mmHg)": round(fi_pressure_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous pressure max (mmHg)": round(fi_pressure_max, ROUND_DECIMALS) if fi_count else 0,
+
+        "Fistulous resistance min (dyn*s/cm^5)": round(fi_resistance_min, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous resistance mean (dyn*s/cm^5)": round(fi_resistance_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous resistance max (dyn*s/cm^5)": round(fi_resistance_max, ROUND_DECIMALS) if fi_count else 0,
+
+        "Fistulous radius min (cm)": round(fi_radius_min, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous radius mean (cm)": round(fi_radius_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous radius max (cm)": round(fi_radius_max, ROUND_DECIMALS) if fi_count else 0,
+
+        "Fistulous length min (cm)": round(fi_length_min, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous length mean (cm)": round(fi_length_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
+        "Fistulous length max (cm)": round(fi_length_max, ROUND_DECIMALS) if fi_count else 0,
+
         "Num plexiform": pl_count,
-        "Plexiform flow (mL/min)": (round(pl_flow_min, ROUND_DECIMALS), round(pl_flow_total / pl_count, ROUND_DECIMALS), round(pl_flow_max, ROUND_DECIMALS)) if pl_count else 0,
-        "Plexiform pressure (mmHg)": (round(pl_pressure_min, ROUND_DECIMALS), round(pl_pressure_total / pl_count, ROUND_DECIMALS), round(pl_pressure_max, ROUND_DECIMALS)) if pl_count else 0,
-        "Plexiform resistance (dyn*s/cm^5)": (round(pl_resistance_min, ROUND_DECIMALS), round(pl_resistance_total / pl_count, ROUND_DECIMALS), round(pl_resistance_max, ROUND_DECIMALS)) if pl_count else 0,
-        "Plexiform radius (cm)": (round(pl_radius_min, ROUND_DECIMALS), round(pl_radius_total / pl_count, ROUND_DECIMALS), round(pl_radius_max, ROUND_DECIMALS)) if pl_count else 0,
-        "Plexiform length (cm)": (round(pl_length_min, ROUND_DECIMALS), round(pl_length_total / pl_count, ROUND_DECIMALS), round(pl_length_max, ROUND_DECIMALS)) if pl_count else 0,
-        # "spacer3": "",
+
+        "Plexiform flow min (mL/min)": round(pl_flow_min, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform flow mean (mL/min)": round(pl_flow_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform flow max (mL/min)": round(pl_flow_max, ROUND_DECIMALS) if pl_count else 0,
+
+        "Plexiform pressure min (mmHg)": round(pl_pressure_min, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform pressure mean (mmHg)": round(pl_pressure_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform pressure max (mmHg)": round(pl_pressure_max, ROUND_DECIMALS) if pl_count else 0,
+
+        "Plexiform resistance min (dyn*s/cm^5)": round(pl_resistance_min, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform resistance mean (dyn*s/cm^5)": round(pl_resistance_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform resistance max (dyn*s/cm^5)": round(pl_resistance_max, ROUND_DECIMALS) if pl_count else 0,
+
+        "Plexiform radius min (cm)": round(pl_radius_min, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform radius mean (cm)": round(pl_radius_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform radius max (cm)": round(pl_radius_max, ROUND_DECIMALS) if pl_count else 0,
+
+        "Plexiform length min (cm)": round(pl_length_min, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform length mean (cm)": round(pl_length_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
+        "Plexiform length max (cm)": round(pl_length_max, ROUND_DECIMALS) if pl_count else 0,
 
         "Num feeder": fe_count,
-        "Feeder flow (mL/min)": (round(fe_flow_min, ROUND_DECIMALS), round(dr_flow_total / fe_count, ROUND_DECIMALS), round(fe_flow_max, ROUND_DECIMALS)) if fe_count else 0,
-        "Feeder pressure (mmHg)": (round(fe_pressure_min, ROUND_DECIMALS), round(fe_pressure_total / fe_count, ROUND_DECIMALS), round(fe_pressure_max, ROUND_DECIMALS)) if fe_count else 0,
+
+        "Feeder flow min (mL/min)": round(fe_flow_min, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder flow mean (mL/min)": round(fe_flow_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder flow max (mL/min)": round(fe_flow_max, ROUND_DECIMALS) if fe_count else 0,
+
+        "Feeder pressure min (mmHg)": round(fe_pressure_min, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder pressure mean (mmHg)": round(fe_pressure_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder pressure max (mmHg)": round(fe_pressure_max, ROUND_DECIMALS) if fe_count else 0,
+
+        "Feeder resistance min (dyn*s/cm^5)": round(fe_resistance_min, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder resistance mean (dyn*s/cm^5)": round(fe_resistance_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder resistance max (dyn*s/cm^5)": round(fe_resistance_max, ROUND_DECIMALS) if fe_count else 0,
+
+        "Feeder radius min (cm)": round(fe_radius_min, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder radius mean (cm)": round(fe_radius_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder radius max (cm)": round(fe_radius_max, ROUND_DECIMALS) if fe_count else 0,
+
+        "Feeder length min (cm)": round(fe_length_min, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder length mean (cm)": round(fe_length_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
+        "Feeder length max (cm)": round(fe_length_max, ROUND_DECIMALS) if fe_count else 0,
+
         "Feeder total flow (mL/min)": round(fe_flow_total, ROUND_DECIMALS),
-        "Feeder resistance (dyn*s/cm^5)": (round(fe_resistance_min, ROUND_DECIMALS), round(fe_resistance_total / fe_count, ROUND_DECIMALS), round(fe_resistance_max, ROUND_DECIMALS)) if fe_count else 0,
-        "Feeder radius (cm)": (round(fe_radius_min, ROUND_DECIMALS), round(fe_radius_total / fe_count, ROUND_DECIMALS), round(fe_radius_max, ROUND_DECIMALS)) if fe_count else 0,
-        "Feeder length (cm)": (round(fe_length_min, ROUND_DECIMALS), round(fe_length_total / fe_count, ROUND_DECIMALS), round(fe_length_max, ROUND_DECIMALS)) if fe_count else 0,
-        # "spacer4": "",
 
         "Num drainer": dr_count,
-        "Drainer flow (mL/min)": (round(dr_flow_min, ROUND_DECIMALS), round(dr_flow_total / dr_count, ROUND_DECIMALS), round(dr_flow_max, ROUND_DECIMALS)) if dr_count else 0,
-        "Drainer pressure (mmHg)": (round(dr_pressure_min, ROUND_DECIMALS), round(dr_pressure_total / dr_count, ROUND_DECIMALS), round(dr_pressure_max, ROUND_DECIMALS)) if dr_count else 0,
+
+        "Drainer flow min (mL/min)": round(dr_flow_min, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer flow mean (mL/min)": round(dr_flow_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer flow max (mL/min)": round(dr_flow_max, ROUND_DECIMALS) if dr_count else 0,
+
+        "Drainer pressure min (mmHg)": round(dr_pressure_min, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer pressure mean (mmHg)": round(dr_pressure_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer pressure max (mmHg)": round(dr_pressure_max, ROUND_DECIMALS) if dr_count else 0,
+
+        "Drainer resistance min (dyn*s/cm^5)": round(dr_resistance_min, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer resistance mean (dyn*s/cm^5)": round(dr_resistance_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer resistance max (dyn*s/cm^5)": round(dr_resistance_max, ROUND_DECIMALS) if dr_count else 0,
+
+        "Drainer radius min (cm)": round(dr_radius_min, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer radius mean (cm)": round(dr_radius_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer radius max (cm)": round(dr_radius_max, ROUND_DECIMALS) if dr_count else 0,
+
+        "Drainer length min (cm)": round(dr_length_min, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer length mean (cm)": round(dr_length_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
+        "Drainer length max (cm)": round(dr_length_max, ROUND_DECIMALS) if dr_count else 0,
+
         "Drainer total flow (mL/min)": round(dr_flow_total, ROUND_DECIMALS),
-        "Drainer resistance (dyn*s/cm^5)": (round(dr_resistance_min, ROUND_DECIMALS), round(dr_resistance_total / dr_count, ROUND_DECIMALS), round(dr_resistance_max, ROUND_DECIMALS)) if dr_count else 0,
-        "Drainer radius (cm)": (round(dr_radius_min, ROUND_DECIMALS), round(dr_radius_total / dr_count, ROUND_DECIMALS), round(dr_radius_max, ROUND_DECIMALS)) if dr_count else 0,
-        "Drainer length (cm)": (round(dr_length_min, ROUND_DECIMALS), round(dr_length_total / dr_count, ROUND_DECIMALS), round(dr_length_max, ROUND_DECIMALS)) if dr_count else 0,
-        # "spacer5": "",
     }
 
 def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:

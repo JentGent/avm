@@ -41,7 +41,7 @@ def choose_norm(list, mean, sd):
 # https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
 MEAN_PLEXIFORM_RADIUS = 0.01325
 def random_plexiform_radius() -> float:
-    # return MEAN_PLEXIFORM_RADIUS
+    return MEAN_PLEXIFORM_RADIUS
     while True:
         radius = random.normalvariate(MEAN_PLEXIFORM_RADIUS, (MEAN_PLEXIFORM_RADIUS - 0.01) / 6)
         if radius > 0.01: break
@@ -50,27 +50,27 @@ def random_plexiform_radius() -> float:
 # https://www.sciencedirect.com/science/article/pii/S1350453398000599 says 5 mm as length
 MEAN_PLEXIFORM_LENGTH = 0.05  # No source, 1996 paper had no source either
 def random_plexiform_length() -> float:
-    # return MEAN_PLEXIFORM_LENGTH
+    return MEAN_PLEXIFORM_LENGTH
     while True:
-        length = random.normalvariate(MEAN_PLEXIFORM_LENGTH, (MEAN_PLEXIFORM_LENGTH - 0.01) / 6)
-        if length > 0.01: break
+        length = random.normalvariate(MEAN_PLEXIFORM_LENGTH, (MEAN_PLEXIFORM_LENGTH - 0.003) / 6)
+        if length > 0.003: break
     return length
 
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9537653/ fistulas with diameter 200 microns
-MEAN_FISTULOUS_RADIUS = 0.02
+MEAN_FISTULOUS_RADIUS = MEAN_PLEXIFORM_RADIUS * 2
 def random_fistulous_radius() -> float:
-    # return MEAN_FISTULOUS_RADIUS
+    return MEAN_FISTULOUS_RADIUS
     while True:
-        radius = random.normalvariate(MEAN_FISTULOUS_RADIUS, (MEAN_FISTULOUS_RADIUS - 0.005) / 6)
-        if radius > 0.005: break
+        radius = random.normalvariate(MEAN_FISTULOUS_RADIUS, (MEAN_FISTULOUS_RADIUS - 0.01) / 6)
+        if radius > 0.01: break
     return radius
 
-MEAN_FISTULOUS_LENGTH = 0.1
+MEAN_FISTULOUS_LENGTH = 0.05
 def random_fistulous_length() -> float:
-    # return MEAN_FISTULOUS_LENGTH
+    return MEAN_FISTULOUS_LENGTH
     while True:
-        length = random.normalvariate(MEAN_FISTULOUS_LENGTH, (MEAN_FISTULOUS_LENGTH - 0.02) / 6)
-        if length > 0.02: break
+        length = random.normalvariate(MEAN_FISTULOUS_LENGTH, (MEAN_FISTULOUS_LENGTH - 0.01) / 6)
+        if length > 0.01: break
     return length
 
 def two_connections(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
