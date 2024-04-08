@@ -5,6 +5,7 @@ import scipy as sp
 import matplotlib.pyplot as plt
 from typing import Literal
 import math
+from collections import deque
 
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.035
@@ -12,8 +13,10 @@ VISCOSITY = 0.035
 # If PREDEFINED_RESISTANCE is True, radius and length data is ignored, and the given resistance values are used; otherwise, radius and length are plugged into the Hagen–Poiseuille equation: resistance = (8 * length * viscosity) / (pi r^4)
 PREDEFINED_RESISTANCE = True
 
-# x mmHg = x * MMHG_TO_DYNCM dyn/cm^2.
+# x mmHg = x * MMHG_TO_DYN_PER_SQUARE_CM dyn/cm^2.
+# x dyn/cm^2 = x * DYN_PER_SQUARE_CM_TO_MMHG mmHg.
 MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
+DYN_PER_SQUARE_CM_TO_MMHG = 1 / MMHG_TO_DYN_PER_SQUARE_CM
 
 # ABS_PRESSURE indicates whether or not to display calculated absolute pressures (NON-FUNCTIONAL).
 ABS_PRESSURE = False
@@ -131,7 +134,7 @@ def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
     pressure_forward(graph, "SP", pressures["SP"], pressures)
 
 
-def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color_is_flow: bool = True, label: Literal["name", "flow", "pressure", None] = "name"):
+def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color_is_flow: bool = True, label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
 
     Args:
@@ -143,6 +146,7 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}, title: st
         cmap_max: Like `cmap_min`, optional maximum value.
         color_is_flow: If `True`, the color will represent flow, and the edge thickness will represent pressure; if `False`, it will be the other way around.
         label: Specifies whether/what to label the vessels.
+        fill_by_flow: If `True` and `graph` backfilling has been calculated, nodes reached by the flow algorithm will be blue; otherwise, nodes filled by the pressure algorithm will be blue.
     """
     pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
@@ -163,7 +167,7 @@ def display(graph: nx.Graph, intranidal_nodes: list = [], node_pos={}, title: st
         }
     else:
         node_colors = {
-            node: "lightgreen" if node in intranidal_nodes else "pink" for node in graph.nodes()
+            node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
         }
     nx.draw_networkx_nodes(graph, pos, node_color=[node_colors[node] for node in graph.nodes()])
     nx.draw_networkx_labels(graph, pos)
@@ -246,14 +250,14 @@ def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[st
     Args:
         graph: Graph from `edges_to_graph()` or `generate_nidus()`.
         intranidal_nodes: List of nodes in the nidus to generate edges between.
-        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
+        p_ext: A dictionary of known node : pressure values in dyn/cm^2.
         num_nidi: Number of nidi to simulate.
         num_expected_edges: Expected number of edges to generate in the nidus.
         return_error: Whether to return the absolute pressure error from solving Kirchoff's circuit equations.
 
     Returns:
         flows: The calculated flow values in cm^3/s.
-        pressures: The calculated pressure gradients in dyn / cm^2.
+        pressures: The calculated pressure gradients in dyn/cm^2.
         all_edges: The list of edges in the same order as the flow and pressure arrays.
         graphs: The directed graphs of flow (mL/min) and pressure (mmHg).
         error (if `return_error` is True): Error.
@@ -279,7 +283,7 @@ def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[st
                 "resistance": edge[2]["resistance"],
                 "label": edge[2]["label"],
                 "flow": abs(edge[2]["flow"]) * 60,  # x cm^3/s = 60x mL/min
-                "pressure": abs(edge[2]["pressure"]) / MMHG_TO_DYN_PER_SQUARE_CM,
+                "pressure": abs(edge[2]["pressure"]) * DYN_PER_SQUARE_CM_TO_MMHG,
                 "type": edge[2]["type"]
             }) for edge in result.edges(data=True)
         ])
@@ -296,14 +300,14 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
     Args:
         graph: Graph from `edges_to_graph()` or `generate_nidus()`.
         intranidal_nodes: List of nodes in the nidus to generate edges between.
-        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
+        p_ext: A dictionary of known node : pressure values in dyn/cm^2.
         num_nidi: Number of nidi to simulate.
         num_expected_edges: Expected number of edges to generate in the nidus.
         return_error: Whether to return the absolute pressure error from solving Kirchoff's circuit equations.
 
     Returns:
         flow: The calculated flow values in cm^3/s.
-        pressure: The calculated pressure gradients in dyn / cm^2.
+        pressure: The calculated pressure gradients in dyn/cm^2.
         all_edges: The list of edges in the same order as the flow and pressure arrays.
         graph: The directed graph of flow (mL/min) and pressure (mmHg).
         error (if `return_error` is True): Error.
@@ -318,7 +322,7 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
             "resistance": edge[2]["resistance"],
             "label": edge[2]["label"],
             "flow": abs(edge[2]["flow"]) * 60,  # x cm^3/s = 60x mL/min
-            "pressure": abs(edge[2]["pressure"]) / MMHG_TO_DYN_PER_SQUARE_CM,
+            "pressure": abs(edge[2]["pressure"]) * DYN_PER_SQUARE_CM_TO_MMHG,
             "type": edge[2]["type"]
         }) for edge in graph.edges(data=True)
     ])
@@ -326,289 +330,156 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
         return flow, pressure, all_edges, graph, error
     return flow, pressure, all_edges, graph
 
-def calc_filling(graph: nx.Graph, intranidal_nodes, pressure, all_edges, injection_pressure, num_intranidal_vessels):
-    """Calculates the percent of nidus vessels that are back-filled."""
+def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location) -> float:
+    """Calculates the percent of the nidus that an injection reaches.
+    
+    Args:
+        digraph: Graph after complete simulation (with calculated flow and pressure attributes).
+        intranidal_nodes: List of nodes in the nidus (the algorithm will only traverse vessels whose ends are in `intranidal_nodes`).
+        injection_location: The name of the node that is injected into.
+    
+    Returns:
+        percent_filled: Percent of nidus nodes to which there exists a directed path from the injection location.
+    """
+    nx.set_node_attributes(digraph, False, "reached")
+    digraph.nodes[injection_location]["reached"] = True
+    queue = deque([injection_location])
+    reached = set([injection_location])
+    while queue:
+        n = len(queue)
+        for _ in range(n):
+            node = queue.popleft()
+            for self, next_node in digraph.out_edges(node):
+                if next_node not in reached and next_node in intranidal_nodes:
+                    digraph.nodes[next_node]["reached"] = True
+                    reached.add(next_node)
+                    queue.append(next_node)
+            for next_node, self in digraph.in_edges(node):
+                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 7:
+                    digraph.nodes[next_node]["reached"] = True
+                    reached.add(next_node)
+                    queue.append(next_node)
+    return len(reached) / len(intranidal_nodes) * 100
+
+
+def calc_filling(digraph: nx.DiGraph, intranidal_nodes, pressure, all_edges, injection_pressure_mmHg, num_intranidal_vessels) -> float:
+    """Calculates the percent of nidus vessels that are back-filled.
+    
+    Args:
+        digraph: Graph after complete simulation (with calculated flow and pressure attributes).
+        intranidal_nodes: List of nodes in the nidus.
+        pressure: List/Array of calculated pressure values (in dyn/cm^2) in a network.
+        all_edges: List of (start, end) edge tuples corresponding to the `pressure` array.
+        injection_pressure_mmHg: Pressure, in mmHg, of the injection.
+        num_intranidal_vessels: Number of vessels in the nidus.
+    
+    Returns:
+        percent_filled: Percent of nidus vessels whose pressure is less than the injection pressure.
+    """
+    nx.set_node_attributes(digraph, False, "filled")
     filled = 0
     for i, p in enumerate(pressure):
-        if all_edges[i][0] in intranidal_nodes and all_edges[i][1] in intranidal_nodes and p < injection_pressure:
+        if all_edges[i][0] in intranidal_nodes and all_edges[i][1] in intranidal_nodes and p < injection_pressure_mmHg * MMHG_TO_DYN_PER_SQUARE_CM:
+            digraph.nodes[all_edges[i][0]]["filled"] = True
+            digraph.nodes[all_edges[i][1]]["filled"] = True
             filled += 1
     return filled / num_intranidal_vessels * 100
 
-def compute_rupture_risk(graph, p_min):
-    """Computes and prints the rupture risk for each vessel."""
+def compute_rupture_risk(graph, p_min_dyn_per_sq_cm):
+    """Computes and prints the rupture risk for each vessel.
+    
+    Args:
+        graph: Graph after complete simulation (with calculated flow and pressure attributes).
+        p_min_mmHg: CVP pressure in mmHg.
+    """
     pressures = []
     for _, _, attr in graph.edges(data=True):
         if attr["type"] == vessel.fistulous or attr["type"] == vessel.plexiform:
             pressures.append(attr["pressure"])
-    p_max = 74  # mmHg
-    p_min /= MMHG_TO_DYN_PER_SQUARE_CM
+    p_max_mmHg = 74
+    p_min_mmHg = p_min_dyn_per_sq_cm * DYN_PER_SQUARE_CM_TO_MMHG
     risks = []
     for pressure in pressures:
-        risk = math.log(abs(pressure) / p_min) / math.log(p_max / p_min) * 100
+        risk = math.log(abs(pressure) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
         risk = max(0, min(risk, 100))
         risks.append(risk)
     return np.mean(risks), max(risks)
 
-def get_stats(graph: nx.DiGraph, p_min = 6):
+def get_stats(digraph: nx.DiGraph, p_min_dyn_per_sq_cm = 7999.34, pressure = [], all_edges = [], injection_pressure_mmHg = 0, injection_location = 0):
     """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`.
     
     Args:
-        graph: Graph (result of `simulate()`).
+        digraph: Graph (result of `simulate()`).
+        p_min_dyn_per_sq_cm: CVP pressure in dyn/cm^2.
+        pressure: List/Array of calculated pressure values (in dyn/cm^2) in a network.
+        all_edges: List of (start, end) edge tuples corresponding to the `pressure` array.
+        injection_pressure_dyn_per_sq_cm: Pressure, in dyn/cm^2, of the injection.
+        injection_location: The name of the node that is injected into.
     
     Returns:
         stats: A dictionary of stats.
     """
-    count = 0
-    flow_total, flow_min, flow_max = 0, float('inf'), float('-inf')
-    pressure_total, pressure_min, pressure_max = 0, float('inf'), float('-inf')
-    resistance_total, resistance_min, resistance_max = 0, float('inf'), float('-inf')
-    radius_total, radius_min, radius_max = 0, float('inf'), float('-inf')
-    length_total, length_min, length_max = 0, float('inf'), float('-inf')
-
-    fi_count = 0
-    fi_flow_total, fi_flow_min, fi_flow_max = 0, flow_min, flow_max
-    fi_pressure_total, fi_pressure_min, fi_pressure_max = 0, flow_min, flow_max
-    fi_resistance_total, fi_resistance_min, fi_resistance_max = 0, flow_min, flow_max
-    fi_radius_total, fi_radius_min, fi_radius_max = 0, flow_min, flow_max
-    fi_length_total, fi_length_min, fi_length_max = 0, flow_min, flow_max
-    
-    pl_count = 0
-    pl_flow_total, pl_flow_min, pl_flow_max = 0, flow_min, flow_max
-    pl_pressure_total, pl_pressure_min, pl_pressure_max = 0, flow_min, flow_max
-    pl_resistance_total, pl_resistance_min, pl_resistance_max = 0, flow_min, flow_max
-    pl_radius_total, pl_radius_min, pl_radius_max = 0, flow_min, flow_max
-    pl_length_total, pl_length_min, pl_length_max = 0, flow_min, flow_max
-    
-    fe_count = 0
-    fe_flow_total, fe_flow_min, fe_flow_max = 0, flow_min, flow_max
-    fe_pressure_total, fe_pressure_min, fe_pressure_max = 0, flow_min, flow_max
-    fe_resistance_total, fe_resistance_min, fe_resistance_max = 0, flow_min, flow_max
-    fe_radius_total, fe_radius_min, fe_radius_max = 0, flow_min, flow_max
-    fe_length_total, fe_length_min, fe_length_max = 0, flow_min, flow_max
-    
-    dr_count = 0
-    dr_flow_total, dr_flow_min, dr_flow_max = 0, flow_min, flow_max
-    dr_pressure_total, dr_pressure_min, dr_pressure_max = 0, flow_min, flow_max
-    dr_resistance_total, dr_resistance_min, dr_resistance_max = 0, flow_min, flow_max
-    dr_radius_total, dr_radius_min, dr_radius_max = 0, flow_min, flow_max
-    dr_length_total, dr_length_min, dr_length_max = 0, flow_min, flow_max
+    types = {
+        vessel_type: {
+            "count": 0,
+            "name": name,
+            "flow": { "total": 0, "min": float("inf"), "max": float("-inf"), "units": "mL/min" },
+            "pressure": { "total": 0, "min": float("inf"), "max": float("-inf"), "units": "mmHg" },
+            "resistance": { "total": 0, "min": float("inf"), "max": float("-inf"), "units": "dyn*s/cm^5" },
+            "radius": { "total": 0, "min": float("inf"), "max": float("-inf"), "units": "cm" },
+            "length": { "total": 0, "min": float("inf"), "max": float("-inf"), "units": "cm" }
+        } for vessel_type, name in zip((None, vessel.fistulous, vessel.plexiform, vessel.feeder, vessel.drainer), ("vessels", "fistulous", "plexiform", "feeder", "drainer"))
+    }
 
     nodes = set()
     intranidal_nodes = set()
 
-    for n1, n2, attr in graph.edges(data=True):
+    for n1, n2, attr in digraph.edges(data=True):
         nodes.add(n1)
         nodes.add(n2)
-        count += 1
-        flow_total += attr["flow"]
-        flow_min = min(flow_min, attr["flow"])
-        flow_max = max(flow_max, attr["flow"])
-        pressure_total += attr["pressure"]
-        pressure_min = min(pressure_min, attr["pressure"])
-        pressure_max = max(pressure_max, attr["pressure"])
-        resistance_total += attr["resistance"]
-        resistance_min = min(resistance_min, attr["resistance"])
-        resistance_max = max(resistance_max, attr["resistance"])
-        radius_total += attr["radius"]
-        radius_min = min(radius_min, attr["radius"])
-        radius_max = max(radius_max, attr["radius"])
-        length_total += attr["length"]
-        length_min = min(length_min, attr["length"])
-        length_max = max(length_max, attr["length"])
-        if attr["type"] == vessel.fistulous:
+        if attr["type"] in [vessel.fistulous, vessel.plexiform]:
             intranidal_nodes.add(n1)
             intranidal_nodes.add(n2)
-            fi_count += 1
-            fi_flow_total += attr["flow"]
-            fi_flow_min = min(fi_flow_min, attr["flow"])
-            fi_flow_max = max(fi_flow_max, attr["flow"])
-            fi_pressure_total += attr["pressure"]
-            fi_pressure_min = min(fi_pressure_min, attr["pressure"])
-            fi_pressure_max = max(fi_pressure_max, attr["pressure"])
-            fi_resistance_total += attr["resistance"]
-            fi_resistance_min = min(fi_resistance_min, attr["resistance"])
-            fi_resistance_max = max(fi_resistance_max, attr["resistance"])
-            fi_radius_total += attr["radius"]
-            fi_radius_min = min(fi_radius_min, attr["radius"])
-            fi_radius_max = max(fi_radius_max, attr["radius"])
-            fi_length_total += attr["length"]
-            fi_length_min = min(fi_length_min, attr["length"])
-            fi_length_max = max(fi_length_max, attr["length"])
-        elif attr["type"] == vessel.plexiform:
-            intranidal_nodes.add(n1)
-            intranidal_nodes.add(n2)
-            pl_count += 1
-            pl_flow_total += attr["flow"]
-            pl_flow_min = min(pl_flow_min, attr["flow"])
-            pl_flow_max = max(pl_flow_max, attr["flow"])
-            pl_pressure_total += attr["pressure"]
-            pl_pressure_min = min(pl_pressure_min, attr["pressure"])
-            pl_pressure_max = max(pl_pressure_max, attr["pressure"])
-            pl_resistance_total += attr["resistance"]
-            pl_resistance_min = min(pl_resistance_min, attr["resistance"])
-            pl_resistance_max = max(pl_resistance_max, attr["resistance"])
-            pl_radius_total += attr["radius"]
-            pl_radius_min = min(pl_radius_min, attr["radius"])
-            pl_radius_max = max(pl_radius_max, attr["radius"])
-            pl_length_total += attr["length"]
-            pl_length_min = min(pl_length_min, attr["length"])
-            pl_length_max = max(pl_length_max, attr["length"])
-        elif attr["type"] == vessel.feeder:
-            fe_count += 1
-            fe_flow_total += attr["flow"]
-            fe_flow_min = min(fe_flow_min, attr["flow"])
-            fe_flow_max = max(fe_flow_max, attr["flow"])
-            fe_pressure_total += attr["pressure"]
-            fe_pressure_min = min(fe_pressure_min, attr["pressure"])
-            fe_pressure_max = max(fe_pressure_max, attr["pressure"])
-            fe_resistance_total += attr["resistance"]
-            fe_resistance_min = min(fe_resistance_min, attr["resistance"])
-            fe_resistance_max = max(fe_resistance_max, attr["resistance"])
-            fe_radius_total += attr["radius"]
-            fe_radius_min = min(fe_radius_min, attr["radius"])
-            fe_radius_max = max(fe_radius_max, attr["radius"])
-            fe_length_total += attr["length"]
-            fe_length_min = min(fe_length_min, attr["length"])
-            fe_length_max = max(fe_length_max, attr["length"])
-        elif attr["type"] == vessel.drainer:
-            dr_count += 1
-            dr_flow_total += attr["flow"]
-            dr_flow_min = min(dr_flow_min, attr["flow"])
-            dr_flow_max = max(dr_flow_max, attr["flow"])
-            dr_pressure_total += attr["pressure"]
-            dr_pressure_min = min(dr_pressure_min, attr["pressure"])
-            dr_pressure_max = max(dr_pressure_max, attr["pressure"])
-            dr_resistance_total += attr["resistance"]
-            dr_resistance_min = min(dr_resistance_min, attr["resistance"])
-            dr_resistance_max = max(dr_resistance_max, attr["resistance"])
-            dr_radius_total += attr["radius"]
-            dr_radius_min = min(dr_radius_min, attr["radius"])
-            dr_radius_max = max(dr_radius_max, attr["radius"])
-            dr_length_total += attr["length"]
-            dr_length_min = min(dr_length_min, attr["length"])
-            dr_length_max = max(dr_length_max, attr["length"])
+        types[None]["count"] += 1
+        for stat, value in types[None].items():
+            if stat not in ["count", "name"]:
+                value["total"] += attr[stat]
+                value["min"] = min(value["min"], attr[stat])
+                value["max"] = max(value["max"], attr[stat])
+        if attr["type"] in types:
+            types[attr["type"]]["count"] += 1
+            for stat, value in types[attr["type"]].items():
+                if stat not in ["count", "name"]:
+                    value["total"] += attr[stat]
+                    value["min"] = min(value["min"], attr[stat])
+                    value["max"] = max(value["max"], attr[stat])
     
-    mean_risk, max_risk = compute_rupture_risk(graph, p_min)
+    mean_risk, max_risk = compute_rupture_risk(digraph, p_min_dyn_per_sq_cm)
 
-    return {
+    num_intranidal_vessels = types[vessel.fistulous]["count"] + types[vessel.plexiform]["count"]
+    stats = {
         "Num intranidal nodes": len(intranidal_nodes),
         "Num nodes": len(nodes),
-        "Mean rupture risk (%)": mean_risk,
-        "Max rupture risk (%)": max_risk,
-        "Num intranidal vessels": fi_count + pl_count,
-        "Num vessels": count,
-
-        "Flow min (mL/min)": round(flow_min, ROUND_DECIMALS) if count else 0,
-        "Flow mean (mL/min)": round(flow_total / count, ROUND_DECIMALS) if count else 0,
-        "Flow max (mL/min)": round(flow_max, ROUND_DECIMALS) if count else 0,
-
-        "Pressure min (mmHg)": round(pressure_min, ROUND_DECIMALS) if count else 0,
-        "Pressure mean (mmHg)": round(pressure_total / count, ROUND_DECIMALS) if count else 0,
-        "Pressure max (mmHg)": round(pressure_max, ROUND_DECIMALS) if count else 0,
-
-        "Resistance min (dyn*s/cm^5)": round(resistance_min, ROUND_DECIMALS) if count else 0,
-        "Resistance mean (dyn*s/cm^5)": round(resistance_total / count, ROUND_DECIMALS) if count else 0,
-        "Resistance max (dyn*s/cm^5)": round(resistance_max, ROUND_DECIMALS) if count else 0,
-
-        "Radius min (cm)": round(radius_min, ROUND_DECIMALS) if count else 0,
-        "Radius mean (cm)": round(radius_total / count, ROUND_DECIMALS) if count else 0,
-        "Radius max (cm)": round(radius_max, ROUND_DECIMALS) if count else 0,
-
-        "Length min (cm)": round(length_min, ROUND_DECIMALS) if count else 0,
-        "Length mean (cm)": round(length_total / count, ROUND_DECIMALS) if count else 0,
-        "Length max (cm)": round(length_max, ROUND_DECIMALS) if count else 0,
-
-        "Num fistulous": fi_count,
-
-        "Fistulous flow min (mL/min)": round(fi_flow_min, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous flow mean (mL/min)": round(fi_flow_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous flow max (mL/min)": round(fi_flow_max, ROUND_DECIMALS) if fi_count else 0,
-
-        "Fistulous pressure min (mmHg)": round(fi_pressure_min, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous pressure mean (mmHg)": round(fi_pressure_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous pressure max (mmHg)": round(fi_pressure_max, ROUND_DECIMALS) if fi_count else 0,
-
-        "Fistulous resistance min (dyn*s/cm^5)": round(fi_resistance_min, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous resistance mean (dyn*s/cm^5)": round(fi_resistance_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous resistance max (dyn*s/cm^5)": round(fi_resistance_max, ROUND_DECIMALS) if fi_count else 0,
-
-        "Fistulous radius min (cm)": round(fi_radius_min, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous radius mean (cm)": round(fi_radius_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous radius max (cm)": round(fi_radius_max, ROUND_DECIMALS) if fi_count else 0,
-
-        "Fistulous length min (cm)": round(fi_length_min, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous length mean (cm)": round(fi_length_total / fi_count, ROUND_DECIMALS) if fi_count else 0,
-        "Fistulous length max (cm)": round(fi_length_max, ROUND_DECIMALS) if fi_count else 0,
-
-        "Num plexiform": pl_count,
-
-        "Plexiform flow min (mL/min)": round(pl_flow_min, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform flow mean (mL/min)": round(pl_flow_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform flow max (mL/min)": round(pl_flow_max, ROUND_DECIMALS) if pl_count else 0,
-
-        "Plexiform pressure min (mmHg)": round(pl_pressure_min, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform pressure mean (mmHg)": round(pl_pressure_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform pressure max (mmHg)": round(pl_pressure_max, ROUND_DECIMALS) if pl_count else 0,
-
-        "Plexiform resistance min (dyn*s/cm^5)": round(pl_resistance_min, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform resistance mean (dyn*s/cm^5)": round(pl_resistance_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform resistance max (dyn*s/cm^5)": round(pl_resistance_max, ROUND_DECIMALS) if pl_count else 0,
-
-        "Plexiform radius min (cm)": round(pl_radius_min, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform radius mean (cm)": round(pl_radius_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform radius max (cm)": round(pl_radius_max, ROUND_DECIMALS) if pl_count else 0,
-
-        "Plexiform length min (cm)": round(pl_length_min, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform length mean (cm)": round(pl_length_total / pl_count, ROUND_DECIMALS) if pl_count else 0,
-        "Plexiform length max (cm)": round(pl_length_max, ROUND_DECIMALS) if pl_count else 0,
-
-        "Num feeder": fe_count,
-
-        "Feeder flow min (mL/min)": round(fe_flow_min, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder flow mean (mL/min)": round(fe_flow_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder flow max (mL/min)": round(fe_flow_max, ROUND_DECIMALS) if fe_count else 0,
-
-        "Feeder pressure min (mmHg)": round(fe_pressure_min, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder pressure mean (mmHg)": round(fe_pressure_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder pressure max (mmHg)": round(fe_pressure_max, ROUND_DECIMALS) if fe_count else 0,
-
-        "Feeder resistance min (dyn*s/cm^5)": round(fe_resistance_min, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder resistance mean (dyn*s/cm^5)": round(fe_resistance_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder resistance max (dyn*s/cm^5)": round(fe_resistance_max, ROUND_DECIMALS) if fe_count else 0,
-
-        "Feeder radius min (cm)": round(fe_radius_min, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder radius mean (cm)": round(fe_radius_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder radius max (cm)": round(fe_radius_max, ROUND_DECIMALS) if fe_count else 0,
-
-        "Feeder length min (cm)": round(fe_length_min, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder length mean (cm)": round(fe_length_total / fe_count, ROUND_DECIMALS) if fe_count else 0,
-        "Feeder length max (cm)": round(fe_length_max, ROUND_DECIMALS) if fe_count else 0,
-
-        "Feeder total flow (mL/min)": round(fe_flow_total, ROUND_DECIMALS),
-
-        "Num drainer": dr_count,
-
-        "Drainer flow min (mL/min)": round(dr_flow_min, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer flow mean (mL/min)": round(dr_flow_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer flow max (mL/min)": round(dr_flow_max, ROUND_DECIMALS) if dr_count else 0,
-
-        "Drainer pressure min (mmHg)": round(dr_pressure_min, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer pressure mean (mmHg)": round(dr_pressure_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer pressure max (mmHg)": round(dr_pressure_max, ROUND_DECIMALS) if dr_count else 0,
-
-        "Drainer resistance min (dyn*s/cm^5)": round(dr_resistance_min, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer resistance mean (dyn*s/cm^5)": round(dr_resistance_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer resistance max (dyn*s/cm^5)": round(dr_resistance_max, ROUND_DECIMALS) if dr_count else 0,
-
-        "Drainer radius min (cm)": round(dr_radius_min, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer radius mean (cm)": round(dr_radius_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer radius max (cm)": round(dr_radius_max, ROUND_DECIMALS) if dr_count else 0,
-
-        "Drainer length min (cm)": round(dr_length_min, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer length mean (cm)": round(dr_length_total / dr_count, ROUND_DECIMALS) if dr_count else 0,
-        "Drainer length max (cm)": round(dr_length_max, ROUND_DECIMALS) if dr_count else 0,
-
-        "Drainer total flow (mL/min)": round(dr_flow_total, ROUND_DECIMALS),
+        "Max rupture risk (%)": round(max_risk, ROUND_DECIMALS),
+        "Num intranidal vessels": num_intranidal_vessels,
+        "Injection location": injection_location,
+        "Injection pressure (mmHg)": injection_pressure_mmHg,
+    }
+    for vessel_type, attrs in types.items():
+        stats[f"Num {attrs['name']}"] = attrs["count"]
+        for stat, value in attrs.items():
+            if stat not in ["count", "name"]:
+                title = f"{'' if attrs['name'] == 'vessels' else attrs['name']} {stat} ".capitalize()
+                units = f" ({value['units']})"
+                stats[title + "min" + units] = round(value["min"], ROUND_DECIMALS) if attrs["count"] else 0
+                stats[title + "mean" + units] = round(value["total"] / attrs["count"], ROUND_DECIMALS) if attrs["count"] else 0
+                stats[title + "max" + units] = round(value["max"], ROUND_DECIMALS) if attrs["count"] else 0
+    return stats | {
+        "Feeder total flow (mL/min)": round(types[vessel.feeder]["flow"]["total"], ROUND_DECIMALS),
+        "Drainer total flow (mL/min)": round(types[vessel.feeder]["flow"]["total"], ROUND_DECIMALS),
+        "Mean rupture risk (%)": round(mean_risk, ROUND_DECIMALS),
+        "Percent filled using pressure formula (%)": round(calc_filling(digraph, intranidal_nodes, pressure, all_edges, injection_pressure_mmHg, num_intranidal_vessels), ROUND_DECIMALS),
+        "Percent filled using flow formula (%)": round(calc_filling_bfs(digraph, intranidal_nodes, injection_location), ROUND_DECIMALS) if injection_location else 0
     }
 
 def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
@@ -617,7 +488,7 @@ def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
     Args:
         graph: The graph.
         all_edges: A list of (starting node, ending node) tuples, with resistances in dyn * s / cm^5.
-        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
+        p_ext: A dictionary of known node : pressure values in dyn/cm^2.
 
     Returns:
         flow: The calculated flow values in cm^3 / s.
@@ -671,7 +542,7 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
     Args:
         graph: The graph.
         all_edges: A list of (starting node, ending node) tuples, with resistances in dyn * s / cm^5.
-        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
+        p_ext: A dictionary of known node : pressure values in dyn/cm^2.
 
     Returns:
         flow: The calculated flow values in cm^3 / s.
@@ -730,11 +601,11 @@ def get_Q_and_P(graph: nx.Graph, p_ext) -> tuple[np.ndarray, np.ndarray, list[tu
 
     Args:
         graph: The graph.
-        p_ext: A dictionary of known node : pressure values in dyn / cm^2.
+        p_ext: A dictionary of known node : pressure values in dyn/cm^2.
 
     Returns:
         flow: The calculated flow values in cm^3 / s
-        pressure: The calculated pressure gradients in dyn / cm^2.
+        pressure: The calculated pressure gradients in dyn/cm^2.
         all_edges: A list of the edges in the same order as the flows and pressures.
     """
     all_edges = [(edge[2]["start"], edge[2]["end"]) for edge in graph.edges(data=True)]
