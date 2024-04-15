@@ -20,10 +20,10 @@ CALCULATE_ERROR = True
 SIMULATE_IN_BATCHES = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 70
+ITERATIONS = 1
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
-FILE_NAME = "both.csv"
+FILE_NAME = "data.csv"
 
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
@@ -53,8 +53,9 @@ def main():
                 flow, pressure, all_edges, graph, *error = avm.simulate(network, [], injections[label], CALCULATE_ERROR)
                 error = error if error else None
             stats = avm.get_stats(graph, injections[label][(12, 13)], pressure, all_edges, label[1], label[0])
-            print(label, stats["Percent filled using flow formula (%)"], stats["Mean rupture risk (%)"], stats["Plexiform pressure mean (mmHg)"])
-            avm.display(graph, node_pos, "sdf", color_is_flow = False, fill_by_flow = True, cmap_max = 20)
+            print(f'{label}: Percent filled using flow formula (%): {stats["Percent filled using flow formula (%)"]}')
+            print(f'{label}: Mean rupture risk (%): {stats["Mean rupture risk (%)"]}')
+            avm.display(graph, node_pos, "sdf", color_is_flow = False, fill_by_flow = True)
             plt.show()
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]
@@ -69,14 +70,8 @@ def main():
         df = pd.DataFrame(all_stats)
         file_exists = os.path.isfile(FILE_NAME)
         df.to_csv(FILE_NAME, mode="a", index=False, header=not file_exists)
-    
-    file_path = Path(__file__).parent / FILE_NAME
-    data = pd.read_csv(file_path)
-    print(data[(data["CVP pressure"] == "normal") & (data["Injection pressure (mmHg)"] == 0) & (data["Blood pressure hypotension"] == "normal")]["Drainer total flow (mL/min)"].mean())
 
     print(f"{time.time() - start_time} seconds")
-
-    input("Press return to exit")
 
 
 if __name__ == "__main__":

@@ -355,7 +355,7 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location) 
                     reached.add(next_node)
                     queue.append(next_node)
             for next_node, self in digraph.in_edges(node):
-                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 7:
+                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 5:
                     digraph.nodes[next_node]["reached"] = True
                     reached.add(next_node)
                     queue.append(next_node)

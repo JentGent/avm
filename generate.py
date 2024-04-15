@@ -141,7 +141,8 @@ def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranida
     for j in range(num_compartments):
         compartment_size = normint(10, 20)
         indices = np.linspace(-2, 2, num_columns)
-        values = 2 + (compartment_size - 2) * np.exp(-np.power(indices, 2))
+        num_nodes_on_far_sides = 4
+        values = num_nodes_on_far_sides + (compartment_size - num_nodes_on_far_sides) * np.exp(-np.power(indices, 2))
         compartment = [normint(value * 0.8, value + 2, value) for value in values]
         for i in range(num_columns):
             columns[i].append(compartment[i])
