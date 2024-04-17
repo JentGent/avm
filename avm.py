@@ -401,7 +401,7 @@ def compute_rupture_risk(graph, p_min_dyn_per_sq_cm):
             pressures.append(attr["pressure"])
     p_max_mmHg = 74
     p_min_mmHg = p_min_dyn_per_sq_cm * DYN_PER_SQUARE_CM_TO_MMHG
-    p_min_mmHg = 1
+    p_min_mmHg = 5
     risks = []
     for pressure in pressures:
         risk = math.log(abs(pressure) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
