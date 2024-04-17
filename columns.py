@@ -34,8 +34,8 @@ def main():
     for i in range(1, 1 + ITERATIONS):
 
         all_stats = {}
-        num_compartments = generate.normint(5, 12)
-        num_columns = generate.normint(5, 10)
+        num_compartments = generate.normint(3, 9)
+        num_columns = generate.normint(10, 20)
         num_intercompartmental_vessels = num_compartments * 6
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
@@ -52,11 +52,12 @@ def main():
             pressure = pressures[:, j]
             graph = graphs[j]
 
-            stats = avm.get_stats(graph, abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
-            print(f'{label}: Percent filled using flow formula (%) is {stats["Percent filled using flow formula (%)"]}')
+            stats = avm.get_stats(graph, graphs[0], abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
+            # print(f'{label}: Percent filled using flow formula (%) is {stats["Percent filled using flow formula (%)"]}')
+            print(f'{label}: Total flow is {stats["Feeder total flow (mL/min)"]} mL/min')
 
-            # avm.display(graph, node_pos, "sdf", color_is_flow = False, cmap_max = 50, fill_by_flow = True)
-            # plt.show()
+            avm.display(graph, node_pos, color_is_flow = False, cmap_max = 50, fill_by_flow = True)
+            plt.show()
 
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]
@@ -67,7 +68,7 @@ def main():
 
                 if key not in all_stats:
                     all_stats[key] = []
-                    
+
                 all_stats[key].append(value)
 
             if CALCULATE_ERROR:

@@ -330,7 +330,7 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
         return flow, pressure, all_edges, graph, error
     return flow, pressure, all_edges, graph
 
-def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location) -> float:
+def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location, no_injection_digraph: nx.DiGraph) -> float:
     """Calculates the percent of the nidus that an injection reaches.
     
     Args:
@@ -349,13 +349,16 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location) 
         n = len(queue)
         for _ in range(n):
             node = queue.popleft()
-            for self, next_node in digraph.out_edges(node):
+            for self_node, next_node in digraph.out_edges(node):
                 if next_node not in reached and next_node in intranidal_nodes:
                     digraph.nodes[next_node]["reached"] = True
                     reached.add(next_node)
                     queue.append(next_node)
-            for next_node, self in digraph.in_edges(node):
-                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 3:
+            for next_node, self_node in digraph.in_edges(node):
+                if not no_injection_digraph.has_edge(next_node, self_node):
+                    continue
+                # print(f'og flow: {no_injection_digraph[next_node][self_node]["flow"]} mL/min, new flow: {digraph[next_node][self_node]["flow"]} mL/min')
+                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self_node]["flow"] - no_injection_digraph[next_node][self_node]["flow"] < -5:
                     digraph.nodes[next_node]["reached"] = True
                     reached.add(next_node)
                     queue.append(next_node)
@@ -406,7 +409,7 @@ def compute_rupture_risk(graph, p_min_dyn_per_sq_cm):
         risks.append(risk)
     return np.mean(risks), max(risks)
 
-def get_stats(digraph: nx.DiGraph, p_min_dyn_per_sq_cm = 7999.34, pressure = [], all_edges = [], injection_pressure_mmHg = 0, injection_location = 0):
+def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph, p_min_dyn_per_sq_cm = 7999.34, pressure = [], all_edges = [], injection_pressure_mmHg = 0, injection_location = 0):
     """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`.
     
     Args:
@@ -480,7 +483,7 @@ def get_stats(digraph: nx.DiGraph, p_min_dyn_per_sq_cm = 7999.34, pressure = [],
         "Drainer total flow (mL/min)": round(types[vessel.feeder]["flow"]["total"], ROUND_DECIMALS),
         "Mean rupture risk (%)": round(mean_risk, ROUND_DECIMALS),
         "Percent filled using pressure formula (%)": round(calc_filling(digraph, intranidal_nodes, pressure, all_edges, injection_pressure_mmHg, num_intranidal_vessels), ROUND_DECIMALS),
-        "Percent filled using flow formula (%)": round(calc_filling_bfs(digraph, intranidal_nodes, injection_location), ROUND_DECIMALS) if injection_location else 0
+        "Percent filled using flow formula (%)": round(calc_filling_bfs(digraph, intranidal_nodes, injection_location, no_injection_digraph), ROUND_DECIMALS) if injection_location else 0
     }
 
 def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
