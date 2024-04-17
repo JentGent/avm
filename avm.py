@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from typing import Literal
 import math
 from collections import deque
+import cmasher
 
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.035
@@ -184,7 +185,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
     else:
         edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [1, 5]) for edge in graph.edges(data=True)]
         edge_colors = [edge[2]["pressure"] for edge in graph.edges(data=True)]
-    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else plt.cm.Reds, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
     edge_labels = False
     match label:
         case "name":
@@ -199,7 +200,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
         sm.set_array([])
         colorbar = plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
     else:
-        sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
+        sm = plt.cm.ScalarMappable(cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
         sm.set_array([])
         colorbar = plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
     # plt.title(title)
