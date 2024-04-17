@@ -64,11 +64,17 @@ def main():
             stats["Num compartments"] = num_compartments
 
             for key, value in stats.items():
-                if key not in all_stats: all_stats[key] = []
+
+                if key not in all_stats:
+                    all_stats[key] = []
+                    
                 all_stats[key].append(value)
 
             if CALCULATE_ERROR:
-                if "Error" not in all_stats: all_stats["Error"] = []
+
+                if "Error" not in all_stats:
+                    all_stats["Error"] = []
+
                 all_stats["Error"].append(error)
 
         df = pd.DataFrame(all_stats)
