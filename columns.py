@@ -36,6 +36,8 @@ def main():
         all_stats = {}
         num_compartments = generate.normint(3, 9)
         num_columns = generate.normint(10, 20)
+        num_compartments = 6
+        num_columns = 5
         num_intercompartmental_vessels = num_compartments * 6
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
@@ -54,9 +56,9 @@ def main():
 
             stats = avm.get_stats(graph, graphs[0], abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
             # print(f'{label}: Percent filled using flow formula (%) is {stats["Percent filled using flow formula (%)"]}')
-            print(f'{label}: Total flow is {stats["Feeder total flow (mL/min)"]} mL/min')
+            print(f'{label}: Filling is {stats["Percent filled using flow formula (%)"]} mL/min')
 
-            avm.display(graph, node_pos, color_is_flow = False, cmap_max = 50, fill_by_flow = True)
+            avm.display(graph, node_pos, color_is_flow = True, fill_by_flow = True)
             plt.show()
 
             stats["Blood pressure hypotension"] = label[2]
