@@ -20,7 +20,7 @@ CALCULATE_ERROR = True
 SIMULATE_IN_BATCHES = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 1
+ITERATIONS = 100
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data.csv"
@@ -35,12 +35,13 @@ def main():
     injection_pressures = list(injections.values())
     for i in range(1, 1 + ITERATIONS):
         all_stats = {}
-        num_compartments = random.randint(3, 4)
-        num_columns = random.randint(5, 6)
+        num_compartments = generate.normint(5, 12)
+        num_columns = generate.normint(5, 10)
+        num_intercompartmental_vessels = num_compartments * 6
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
         network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
-        network, _ = generate.compartments(network, ["AF1", "AF2", "AF3", "AF4"], ["DV1", "DV2", "DV3"], FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_compartments * 6)
+        network, _ = generate.compartments(network, ["AF1", "AF2", "AF3", "AF4"], ["DV1", "DV2", "DV3"], FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels)
         if SIMULATE_IN_BATCHES:
             flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
             error = error if error else None
@@ -52,11 +53,11 @@ def main():
             else:
                 flow, pressure, all_edges, graph, *error = avm.simulate(network, [], injections[label], CALCULATE_ERROR)
                 error = error if error else None
-            stats = avm.get_stats(graph, injections[label][(12, 13)], pressure, all_edges, label[1], label[0])
+            stats = avm.get_stats(graph, abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
             print(f'{label}: Percent filled using flow formula (%): {stats["Percent filled using flow formula (%)"]}')
-            print(f'{label}: Mean rupture risk (%): {stats["Mean rupture risk (%)"]}')
-            avm.display(graph, node_pos, "sdf", color_is_flow = False, fill_by_flow = True)
-            plt.show()
+            # print(f'{label}: Mean rupture risk (%): {stats["Mean rupture risk (%)"]}')
+            # avm.display(graph, node_pos, "sdf", color_is_flow = False, cmap_max = 50, fill_by_flow = True)
+            # plt.show()
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]
             stats["Num columns"] = num_columns

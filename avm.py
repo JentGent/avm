@@ -170,7 +170,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
             node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
         }
     nx.draw_networkx_nodes(graph, pos, node_color=[node_colors[node] for node in graph.nodes()])
-    nx.draw_networkx_labels(graph, pos)
+    nx.draw_networkx_labels(graph, pos, labels = { node: "" if isinstance(node, (int, float)) else node for node in graph.nodes})
 
     # Edges
     pressures = [edge[2]["pressure"] for edge in graph.edges(data=True)]
@@ -355,7 +355,7 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location) 
                     reached.add(next_node)
                     queue.append(next_node)
             for next_node, self in digraph.in_edges(node):
-                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 5:
+                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self]["pressure"] < 3:
                     digraph.nodes[next_node]["reached"] = True
                     reached.add(next_node)
                     queue.append(next_node)
@@ -398,6 +398,7 @@ def compute_rupture_risk(graph, p_min_dyn_per_sq_cm):
             pressures.append(attr["pressure"])
     p_max_mmHg = 74
     p_min_mmHg = p_min_dyn_per_sq_cm * DYN_PER_SQUARE_CM_TO_MMHG
+    p_min_mmHg = 1
     risks = []
     for pressure in pressures:
         risk = math.log(abs(pressure) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
