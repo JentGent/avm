@@ -23,26 +23,20 @@ templates = {
     ("minor", "elevated"): [70, 45, 48, 15, 0],
     ("moderate", "elevated"): [50, 32, 34, 12, 2],
     ("profound", "elevated"): [25, 15, 16, 8, 2],
-
-    # ("normal", "elevated"): [74, 49, 52, 22, 12],
-    # ("minor", "elevated"): [70, 47, 50, 19, 10],
-    # ("moderate", "elevated"): [50, 33, 35, 14, 8],
-    # ("profound", "elevated"): [25, 16, 17, 9, 6],
 }
 
 # Uncomment these if you only want to generate specific injections
 injections = {
-    # (None, 0, "normal", "normal"): [74, 47, 47, 50, 50, 17, 17, 17, 6],
     ("DV1", 0, "profound", "elevated"): [25, 15, 15, 16, 16, 8, 8, 8, 2],
     ("DV1", 10, "profound", "elevated"): [25, 15, 15, 16, 16, 8 - 10, 8, 8, 2],
     ("DV1", 20, "profound", "elevated"): [25, 15, 15, 16, 16, 8 - 20, 8, 8, 2],
     ("DV1", 30, "profound", "elevated"): [25, 15, 15, 16, 16, 8 - 30, 8, 8, 2],
-#     ("DV1", 30, "moderate", "normal"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, 5],
-#     ("DV1", 30, "moderate", "elevated"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, -2],
-#     ("DV1", 30, "moderate", "normal"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, 5],
-#     ("DV1", 30, "profound", "normal"): [25, 15, 15, 16, 16, 8 - 30, 8, 8, 4],
-#     ("DV2", 30, "profound", "normal"): [25, 15, 15, 16, 16, 8, 8 - 30, 8, 4],
-#     ("AF2", 30, "profound", "normal"): [25, 15, 15 + 30, 16, 16, 8, 8, 8, 4]
+    # ("DV1", 30, "moderate", "normal"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, 5],
+    # ("DV1", 30, "moderate", "elevated"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, -2],
+    # ("DV1", 30, "moderate", "normal"): [50, 32, 32, 34, 34, 12 - 30, 12, 12, 5],
+    # ("DV1", 30, "profound", "normal"): [25, 15, 15, 16, 16, 8 - 30, 8, 8, 4],
+    # ("DV2", 30, "profound", "normal"): [25, 15, 15, 16, 16, 8, 8 - 30, 8, 4],
+    # ("AF2", 30, "profound", "normal"): [25, 15, 15 + 30, 16, 16, 8, 8, 8, 4]
 }
 
 # Uncomment this if you want to simulate every possible injection
