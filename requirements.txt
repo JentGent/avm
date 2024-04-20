@@ -1,3 +1,5 @@
+cmasher==1.8.0
+colorspacious==1.1.2
 contourpy==1.2.0
 cycler==0.12.1
 fonttools==4.47.2
@@ -12,5 +14,6 @@ pyparsing==3.1.1
 python-dateutil==2.8.2
 pytz==2024.1
 scipy==1.12.0
+seaborn==0.13.2
 six==1.16.0
 tzdata==2024.1
