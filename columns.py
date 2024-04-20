@@ -56,9 +56,9 @@ def main():
 
             stats = avm.get_stats(graph, graphs[0], abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
             # print(f'{label}: Percent filled using flow formula (%) is {stats["Percent filled using flow formula (%)"]}')
-            print(f'{label}: Filling is {stats["Percent filled using flow formula (%)"]} mL/min')
+            print(f'{label}: Filling is {stats["Percent filled using flow formula (%)"]} %')
 
-            avm.display(graph, node_pos, color_is_flow = True, fill_by_flow = True)
+            avm.display(graph, node_pos, color_is_flow = True, fill_by_flow = True, cmap_min=0, cmap_max=30)
             plt.show()
 
             stats["Blood pressure hypotension"] = label[2]
