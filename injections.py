@@ -28,12 +28,12 @@ templates = {
 # Uncomment these if you only want to generate specific injections
 injections = {
 
-    ("", 0, "normal", "normal"): [74, 47, 47, 50, 50, 17, 17, 17, 6],
+    # ("", 0, "normal", "normal"): [74, 47, 47, 50, 50, 17, 17, 17, 6],
 
-    ("DV3", 0, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12, 2],
-    ("DV3", 10, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 10, 2],
-    ("DV3", 20, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 20, 2],
-    ("DV3", 30, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 30, 2],
+    # ("DV3", 0, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12, 2],
+    # ("DV3", 10, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 10, 2],
+    # ("DV3", 20, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 20, 2],
+    # ("DV3", 30, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 30, 2],
 
     # ("DV1", 20, "normal", "normal"): [74, 47, 47, 50, 50, 17 - 20, 17, 17, 6],
     # ("DV1", 20, "minor", "normal"): [70, 45, 45, 48, 48, 15 - 20, 15, 15, 5],
@@ -42,20 +42,22 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-# for injection_location in [None, "DV1", "DV2", "DV3", "AF1", "AF2", "AF3", "AF4"]:
-#     for injection_pressure in ([0, 10, 20, 30] if injection_location[0] == "A" else [10, 20, 30]) if injection_location else [0]:
-#         for (hypotension, cvp), pressures in templates.items():
-#             injections[(injection_location, injection_pressure, hypotension, cvp)] = [
-#                 pressures[0],
-#                 pressures[1] + (injection_pressure if injection_location == "AF1" else 0),
-#                 pressures[1] + (injection_pressure if injection_location == "AF2" else 0),
-#                 pressures[2] + (injection_pressure if injection_location == "AF3" else 0),
-#                 pressures[2] + (injection_pressure if injection_location == "AF4" else 0),
-#                 pressures[3] - (injection_pressure if injection_location == "DV1" else 0),
-#                 pressures[3] - (injection_pressure if injection_location == "DV2" else 0),
-#                 pressures[3] - (injection_pressure if injection_location == "DV3" else 0),
-#                 pressures[4]
-#             ]
+for injection_location in [None, "DV1", "DV2", "DV3", "AF1", "AF2", "AF3", "AF4"]:
+# for injection_location in [None, "DV1", "DV2", "DV3"]:
+    for injection_pressure in ([0, 10, 20, 30] if injection_location[0] == "A" else [10, 20, 30]) if injection_location else [0]:
+    # for injection_pressure in [30] if injection_location else [0]:
+        for (hypotension, cvp), pressures in templates.items():
+            injections[(injection_location, injection_pressure, hypotension, cvp)] = [
+                pressures[0],
+                pressures[1] + (injection_pressure if injection_location == "AF1" else 0),
+                pressures[1] + (injection_pressure if injection_location == "AF2" else 0),
+                pressures[2] + (injection_pressure if injection_location == "AF3" else 0),
+                pressures[2] + (injection_pressure if injection_location == "AF4" else 0),
+                pressures[3] - (injection_pressure if injection_location == "DV1" else 0),
+                pressures[3] - (injection_pressure if injection_location == "DV2" else 0),
+                pressures[3] - (injection_pressure if injection_location == "DV3" else 0),
+                pressures[4]
+            ]
 
 print(f"{len(injections)} pressure sets")
 for key, pressures in injections.items():

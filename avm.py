@@ -7,6 +7,7 @@ from typing import Literal
 import math
 from collections import deque
 import cmasher
+from skimage.filters import threshold_otsu
 
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.035
@@ -135,6 +136,15 @@ def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
     pressure_forward(graph, "SP", pressures["SP"], pressures)
 
 
+def pressure_change(first_digraph: nx.DiGraph, second_digraph: nx.DiGraph) -> list[float]:
+    percent_differences = []
+    for (node1, node2, pressure) in first_digraph.edges.data("pressure"):
+        if node2 in second_digraph[node1]:
+            percent_differences.append((second_digraph[node1][node2]["pressure"] - pressure) / pressure * 100)
+        else:
+            percent_differences.append((-second_digraph[node2][node1]["pressure"] - pressure) / pressure * 100)
+    return percent_differences
+
 def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color_is_flow: bool = True, label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
 
@@ -162,15 +172,10 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
                 pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
     # Nodes
-    if ABS_PRESSURE:
-        node_colors = {
-            node: pressure or 0 for node, pressure in graph.nodes("pressure")
-        }
-    else:
-        node_colors = {
-            node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
-        }
-    nx.draw_networkx_nodes(graph, pos, node_color=[node_colors[node] for node in graph.nodes()])
+    node_colors = {
+        node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
+    }
+    nx.draw_networkx_nodes(graph, pos, node_size=300, node_color=[node_colors[node] for node in graph.nodes()])
     nx.draw_networkx_labels(graph, pos, labels = { node: "" if isinstance(node, (int, float)) else node for node in graph.nodes})
 
     # Edges
@@ -185,7 +190,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
     else:
         edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [1, 1]) for edge in graph.edges(data=True)]
         edge_colors = [edge[2]["pressure"] for edge in graph.edges(data=True)]
-    nx.draw_networkx_edges(graph, pos, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+    nx.draw_networkx_edges(graph, pos, node_size = 300, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
     edge_labels = False
     match label:
         case "name":
@@ -331,6 +336,20 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
         return flow, pressure, all_edges, graph, error
     return flow, pressure, all_edges, graph
 
+def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
+    """Returns a new graph that consists only of fistulous and plexiform edges of the given graph.
+    
+    Args:
+        digraph
+    
+    Returns:
+        nidus
+    """
+    nidus = nx.DiGraph([edge for edge in digraph.edges(data=True) if edge[2]["type"] in (vessel.fistulous, vessel.plexiform)])
+    for node, attrs in digraph.nodes(data=True):
+        nidus.add_node(node, **attrs)
+    return nidus
+
 def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location, no_injection_digraph: nx.DiGraph) -> float:
     """Calculates the percent of the nidus that an injection reaches.
     
@@ -342,6 +361,12 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location, 
     Returns:
         percent_filled: Percent of nidus nodes to which there exists a directed path from the injection location.
     """
+    no_injection_nidus = get_nidus(no_injection_digraph)
+    nidus = get_nidus(digraph)
+    all_changes = pressure_change(no_injection_nidus, nidus)
+    changes = [change / 100 for change in all_changes if change < 0 and change > -100]
+    threshold = threshold_otsu(np.array(changes)) if len(changes) else -10000
+
     nx.set_node_attributes(digraph, False, "reached")
     digraph.nodes[injection_location]["reached"] = True
     queue = deque([injection_location])
@@ -356,13 +381,31 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, injection_location, 
                     reached.add(next_node)
                     queue.append(next_node)
             for next_node, self_node in digraph.in_edges(node):
-                if not no_injection_digraph.has_edge(next_node, self_node):
-                    continue
                 # print(f'og flow: {no_injection_digraph[next_node][self_node]["flow"]} mL/min, new flow: {digraph[next_node][self_node]["flow"]} mL/min')
-                if next_node not in reached and next_node in intranidal_nodes and digraph[next_node][self_node]["flow"] - no_injection_digraph[next_node][self_node]["flow"] < -5:
-                    digraph.nodes[next_node]["reached"] = True
-                    reached.add(next_node)
-                    queue.append(next_node)
+                if next_node not in reached and next_node in intranidal_nodes:
+                    if no_injection_digraph.has_edge(next_node, self_node):
+                        if (digraph[next_node][self_node]["pressure"] - no_injection_digraph[next_node][self_node]["pressure"]) / no_injection_digraph[next_node][self_node]["pressure"] < threshold:
+                            digraph.nodes[next_node]["reached"] = True
+                            reached.add(next_node)
+                            queue.append(next_node)
+                    else:
+                        if (-digraph[next_node][self_node]["pressure"] - no_injection_digraph[self_node][next_node]["pressure"]) / no_injection_digraph[self_node][next_node]["pressure"] < threshold:
+                            digraph.nodes[next_node]["reached"] = True
+                            reached.add(next_node)
+                            queue.append(next_node)
+    for edge in digraph.edges(data=True):
+        if no_injection_digraph.has_edge(edge[0], edge[1]):
+            if (edge[2]["pressure"] - no_injection_digraph[edge[0]][edge[1]]["pressure"]) / no_injection_digraph[edge[0]][edge[1]]["pressure"] < threshold:
+                digraph.nodes[edge[0]]["reached"] = True
+                digraph.nodes[edge[1]]["reached"] = True
+                reached.add(edge[0])
+                reached.add(edge[1])
+        else:
+            if (-edge[2]["pressure"] - no_injection_digraph[edge[1]][edge[0]]["pressure"]) / no_injection_digraph[edge[1]][edge[0]]["pressure"] < threshold:
+                digraph.nodes[edge[0]]["reached"] = True
+                digraph.nodes[edge[1]]["reached"] = True
+                reached.add(edge[0])
+                reached.add(edge[1])
     return len(reached) / len(intranidal_nodes) * 100
 
 

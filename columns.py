@@ -1,10 +1,12 @@
 """Randomly generates a nidus with nodes arranged in columns."""
 
+from skimage.filters import threshold_otsu
 import avm
 import matplotlib.pyplot as plt
 import random
 import copy
 import math
+import networkx as nx
 import pandas as pd
 import os
 import numpy as np
@@ -17,7 +19,7 @@ from injections import injections
 CALCULATE_ERROR = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 100
+ITERATIONS = 10
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data.csv"
@@ -36,8 +38,8 @@ def main():
         all_stats = {}
         num_compartments = generate.normint(3, 9)
         num_columns = generate.normint(10, 20)
-        num_compartments = 6
-        num_columns = 5
+        # num_compartments = 6
+        # num_columns = 5
         num_intercompartmental_vessels = num_compartments * 6
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
@@ -49,17 +51,28 @@ def main():
         error = error if error else None
 
         for j, label in enumerate(injections.keys()):
+            no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3]))]
 
             flow = flows[:, j]
             pressure = pressures[:, j]
             graph = graphs[j]
 
-            stats = avm.get_stats(graph, graphs[0], abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
-            # print(f'{label}: Percent filled using flow formula (%) is {stats["Percent filled using flow formula (%)"]}')
-            print(f'{label}: Filling is {stats["Percent filled using flow formula (%)"]} %')
+            stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), pressure, all_edges, label[1], label[0])
+            # print(f'{label}: Filling is {stats["Percent filled using flow formula (%)"]} %')
 
-            avm.display(graph, node_pos, color_is_flow = True, fill_by_flow = True, cmap_min=0, cmap_max=30)
-            plt.show()
+            # if label[0]:
+            #     no_injection_nidus = avm.get_nidus(no_injection_graph)
+            #     nidus = avm.get_nidus(graph)
+            #     all_changes = avm.pressure_change(no_injection_nidus, nidus)
+            #     changes = [change for change in all_changes if change < 0 and change > -100]
+            #     plt.figure(figsize=(10, 6))
+            #     plt.hist(changes, bins=np.arange(min(changes), max(changes), 5), color="skyblue", edgecolor="black")
+            #     plt.axvline(threshold_otsu(np.array(changes)), color="red", linestyle="dashed", linewidth=2)
+            #     plt.grid(True)
+            #     plt.show()
+            #     avm.display(nidus, node_pos, color_is_flow = True, fill_by_flow = True, cmap_min=0, cmap_max=30)
+            #     plt.show()
+
 
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]

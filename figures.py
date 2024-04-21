@@ -1,68 +1,115 @@
-"""This file does not need to be maintained. It is just used to quickly generate figures."""
+"""Functions for making figures."""
 
-import pandas as pd
-import seaborn as sns
+import networkx as nx
+import avm
+from typing import Literal
+import cmasher
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Load the data
-data = pd.read_csv('data.csv')
+def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color_is_flow: bool = True, label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
+    """Displays the graph.
 
-# Filter data to include only data where the Injection location starts with 'D'
-filtered_data = data[
-    data["Injection location"].notna() &
-    data["Injection location"].str.startswith('D')
-]
+    Args:
+        graph: The graph.
+        intranidal_nodes: The nodes in the nidus. This is only for color-coding.
+        node_pos: A dictionary of node : [x, y] positions.
+        title: Optional title for the graph.
+        cmap_min: Optional minimum value for the color map range; if None, defaults to minimum flow/pressure value.
+        cmap_max: Like `cmap_min`, optional maximum value.
+        color_is_flow: If `True`, the color will represent flow, and the edge thickness will represent pressure; if `False`, it will be the other way around.
+        label: Specifies whether/what to label the vessels.
+        fill_by_flow: If `True` and `graph` backfilling has been calculated, nodes reached by the flow algorithm will be blue; otherwise, nodes filled by the pressure algorithm will be blue.
+    """
+    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
-# Calculate the average percent filled for each group
-grouped_data = filtered_data.groupby(
-    ["Blood pressure hypotension", "Injection pressure (mmHg)", "CVP pressure"]
-).agg(
-    Rupture_risk=pd.NamedAgg(column="Mean rupture risk (%)", aggfunc='mean')
-).reset_index()
+    # Fix node positions
+    xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [
+        coords[1] for node, coords in pos.items() if node not in node_pos]
+    if xs:
+        mx, my = min(xs), min(ys)
+        Mx, My = (max(xs) - mx) or 1, (max(ys) - my) or 1
+        for node, coords in pos.items():
+            if node not in node_pos.keys():
+                pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
-# Define order for "Blood pressure hypotension" and "CVP pressure"
-hypotension_order = ['normal', 'minor', 'moderate', 'profound']
-cvp_order = ['normal', 'elevated']
-grouped_data['Blood pressure hypotension'] = pd.Categorical(
-    grouped_data['Blood pressure hypotension'],
-    categories=hypotension_order,
-    ordered=True
-)
-grouped_data['CVP pressure'] = pd.Categorical(
-    grouped_data['CVP pressure'],
-    categories=cvp_order,
-    ordered=True
-)
+    # Nodes
+    node_colors = {
+        node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
+    }
+    nx.draw_networkx_nodes(graph, pos, node_size=10, node_color=[node_colors[node] for node in graph.nodes()])
+    nx.draw_networkx_labels(graph, pos, labels = { node: "" if isinstance(node, (int, float)) else node for node in graph.nodes})
 
-# Plotting
-sns.set_theme(style="whitegrid")
+    # Edges
+    pressures = [edge[2]["pressure"] for edge in graph.edges(data=True)]
+    flows = [edge[2]["flow"] for edge in graph.edges(data=True)]
+    min_pressure, max_pressure = min(pressures), max(pressures)
+    min_flow, max_flow = min(flows), max(flows)
 
-# Create a FacetGrid, mapping data to bar plots
-g = sns.FacetGrid(
-    grouped_data, 
-    col="Blood pressure hypotension", 
-    col_order=hypotension_order, 
-    height=4, 
-    aspect=1.5
-)
-g.map_dataframe(
-    sns.barplot, 
-    x="Injection pressure (mmHg)", 
-    y="Rupture_risk", 
-    hue="CVP pressure",  # Use CVP pressure for hue
-    palette='viridis',  # Color palette for differentiating CVP pressures
-    dodge=True  # Ensure bars are dodged (i.e., side by side)
-)
+    if color_is_flow:
+        edge_widths = [np.interp(edge[2]["pressure"], [min_pressure, max_pressure], [1, 1]) for edge in graph.edges(data=True)]
+        edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
+    else:
+        edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [1, 1]) for edge in graph.edges(data=True)]
+        edge_colors = [edge[2]["pressure"] for edge in graph.edges(data=True)]
+    nx.draw_networkx_edges(graph, pos, node_size = 10, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+    edge_labels = False
+    match label:
+        case "name":
+            edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
+        case "flow":
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in graph.edges(data=True)}
+        case "pressure":
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["pressure"], 3)) for edge in graph.edges(data=True)}
+    if edge_labels: nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+    if color_is_flow:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors) if cmap_min is None else cmap_min, vmax=max(edge_colors) if cmap_max is None else cmap_max))
+        sm.set_array([])
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
+    else:
+        sm = plt.cm.ScalarMappable(cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
+        sm.set_array([])
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
+    # plt.title(title)
+    return colorbar
 
-# Customize the FacetGrid
-g.set_titles("{col_name} hypotension")
-g.set_axis_labels("Injection pressure (mmHg)", "Average mean rupture risk (%)")
-g.set(ylim=(0, 100))
-g.add_legend(title='CVP Pressure')
 
+def bw(graph: nx.Graph, node_pos={}):
+    """
+    """
+    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
-# Adjust the layout to ensure labels are visible
-plt.subplots_adjust(left=0.05)  # Increase left margin if needed
-plt.subplots_adjust(right=0.9)
+    # Fix node positions
+    xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [
+        coords[1] for node, coords in pos.items() if node not in node_pos]
+    if xs:
+        mx, my = min(xs), min(ys)
+        Mx, My = (max(xs) - mx) or 1, (max(ys) - my) or 1
+        for node, coords in pos.items():
+            if node not in node_pos.keys():
+                pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
-plt.show()
+    # Nodes
+    nx.draw_networkx_nodes(graph, pos, node_size=10, node_color="black")
+
+    # Edges
+    nx.draw_networkx_edges(graph, pos, node_size = 10, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool if color_is_flow else cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+    edge_labels = False
+    match label:
+        case "name":
+            edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
+        case "flow":
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in graph.edges(data=True)}
+        case "pressure":
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["pressure"], 3)) for edge in graph.edges(data=True)}
+    if edge_labels: nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+    if color_is_flow:
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors) if cmap_min is None else cmap_min, vmax=max(edge_colors) if cmap_max is None else cmap_max))
+        sm.set_array([])
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
+    else:
+        sm = plt.cm.ScalarMappable(cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
+        sm.set_array([])
+        colorbar = plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
+    # plt.title(title)
+    return colorbar

@@ -48,6 +48,8 @@ def random_plexiform_length() -> float:
     return MEAN_PLEXIFORM_LENGTH
     # return norm(0.01, None, MEAN_PLEXIFORM_LENGTH, (MEAN_PLEXIFORM_LENGTH - 0.01) / 3)
 
+print(avm.calc_resistance(MEAN_PLEXIFORM_RADIUS, MEAN_PLEXIFORM_LENGTH))
+
 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9537653/ fistulas with diameter 200 microns
 MEAN_FISTULOUS_RADIUS = MEAN_PLEXIFORM_RADIUS * 2
 def random_fistulous_radius() -> float:
@@ -176,7 +178,7 @@ def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranida
         for j, compartment in enumerate(column):
             compartment_nodes = []
             for _ in range(compartment):
-                node_pos[node_id] = [lerp(i, -1, len(columns), left, right), lerp(y, -spacing, height, top, bottom)]
+                node_pos[node_id] = [lerp(i, -1, len(columns), left, right), lerp(y, -spacing * 3, height - spacing, top, bottom)]
                 compartment_nodes.append(node_id)
                 y += 1
                 node_id += 1
