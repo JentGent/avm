@@ -50,14 +50,14 @@ VESSELS = [
     [3, 12, 0, 0, 2210, "R4", avm.vessel.feeder],
     [4, 5, 0, 0, 637.5, "R5"],
     [5, 9, 0, 0, 1000000, "R6"],
-    [9, 18, 0, 0, 12750000, "R7"],
+    [9, 18, 0, 0, 12750000, "R7", avm.vessel.feeder],
     [9, 10, 0, 0, 1000000, "R8"],
     [10, 11, 0, 0, 4177.9, "R9"],
     [4, 6, 0, 0, 522, "R10"],
     [6, 14, 0, 0, 745.5, "R11", avm.vessel.feeder],
     [6, 13, 0, 0, 15725000, "R12", avm.vessel.feeder],
     [6, 7, 0, 0, 10200, "R13"],
-    [7, 8, 0, 0, 1000000, "R14", avm.vessel.feeder],
+    [7, 8, 0, 0, 1000000, "R14"],
     [8, 11, 0, 0, 4177.9, "R15"],
     [13, 18, 0, 0, 81600, "R16", avm.vessel.plexiform],
     [13, 19, 0, 0, 81600, "R17", avm.vessel.plexiform],
@@ -95,37 +95,32 @@ VESSELS = [
     [32, "SP", 0, 0, 3.2, "R49"],
     ["SP", 1, 0, 0, 1, "R50"],
 ]
-for i in range(len(VESSELS)):
-    if random.random() < 0.5:
-        [VESSELS[i][0], VESSELS[i][1]] = [VESSELS[i][1], VESSELS[i][0]]
+for vessel in VESSELS:
+    vessel[4] *= avm.DYN_S_PER_CM5_TO_MMHG_MIN_PER_ML
 
 # PRESSURES is a dictionary of known node : pressure values.
 PRESSURES = {
-    (32, "SP"): 74 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (3, 12): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (6, 14): 47 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (6, 13): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (9, 18): 50 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (30, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (29, 11): 17 * avm.MMHG_TO_DYN_PER_SQUARE_CM,
-    (31, 32): 5 * avm.MMHG_TO_DYN_PER_SQUARE_CM
+    (32, "SP"): 74,
+    (3, 12): 47,
+    (6, 14): 47,
+    (6, 13): 50,
+    (9, 18): 50,
+    (30, 11): 17,
+    (29, 11): 17,
+    (31, 32): 5
 }
-
-# INTRANIDAL_NODES is a list of nodes in the nidus.
-INTRANIDAL_NODES = ["AF1", "AF2", "AF3", "AF4"] + list(range(12, 31)) + ["DV1", "DV2", "DV3"]
-
 
 def main():
     network = avm.edges_to_graph(VESSELS)
     flow, pressure, _, graph = avm.simulate(network, [], PRESSURES)
     print(f"Number of flow values before removing duplicates: {flow.shape}")
     flow = flow[np.unique(np.round(flow / 0.00000001) * 0.00000001, return_index=True)[1]]
-    flow = np.append(flow, 820.71 / 60)
+    flow = np.append(flow, 820.71)
     print(f"After: {flow.shape}")
 
     for key, value in avm.get_stats(graph).items():
         print(f"{key}: {value}")
-    avm.display(graph, INTRANIDAL_NODES, NODE_POS)
+    avm.display(graph, NODE_POS)
     plt.show()
 
 

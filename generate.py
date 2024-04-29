@@ -134,43 +134,32 @@ def gilbert(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int, pl
                 avm.add_edge_to_graph(graph, intranidal_nodes[j], intranidal_nodes[k], radius, length, plexiform_resistance if avm.PREDEFINED_RESISTANCE else avm.calc_resistance(radius, length))
     return graph
 
-def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranidal_id: int, node_pos: dict, num_compartments: int, num_columns: int, num_cross_compartment_vessels: int = 20, spacing: float = 3) -> tuple[nx.Graph, list[list[list]]]:
+def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranidal_id: int, node_pos: dict, num_compartments: int, num_columns: int, num_cross_compartment_vessels: int = 20, min_compartment_height = 10, max_compartment_height = 25, fistula_start = "AF2", fistula_end = "DV2", spacing: float = 3) -> tuple[nx.Graph, list[list[list]]]:
     """"""
     # Generate configuration
     # At first, columns[i][j] is the number of nodes in the `i`th column that are in the `j`th compartment
     # After calculating node positions, columns[i][j][k] is the id of the `k`th node in S, where S is the set of nodes in the `i`th column that are in the `j`th compartment
     columns = [[] for i in range(num_columns)]
     for j in range(num_compartments):
-        compartment_size = normint(10, 20)
+        compartment_size = normint((min_compartment_height + max_compartment_height) // 2, max_compartment_height)
+        # compartment_size = 50
         indices = np.linspace(-2, 2, num_columns)
-        num_nodes_on_far_sides = 4
+        num_nodes_on_far_sides = min_compartment_height
+        # num_nodes_on_far_sides = 30
         values = num_nodes_on_far_sides + (compartment_size - num_nodes_on_far_sides) * np.exp(-np.power(indices, 2))
         compartment = [normint(value * 0.8, value + 2, value) for value in values]
         for i in range(num_columns):
             columns[i].append(compartment[i])
     
     # Calculate node positions
-    feeders, drainers = ["AF1"], []
-    left = right = node_pos["AF1"][0]
-    top = bottom = node_pos["AF1"][1]
-    af, s = 2, "AF2"
-    while s in node_pos:
-        left = min(node_pos[s][0], left)
-        right = max(node_pos[s][0], right)
-        bottom = min(node_pos[s][1], bottom)
-        top = max(node_pos[s][1], top)
-        feeders.append(s)
-        af += 1
-        s = "AF" + str(af)
-    dv, s = 1, "DV1"
-    while s in node_pos:
-        left = min(node_pos[s][0], left)
-        right = max(node_pos[s][0], right)
-        bottom = min(node_pos[s][1], bottom)
-        top = max(node_pos[s][1], top)
-        drainers.append(s)
-        dv += 1
-        s = "DV" + str(dv)
+    left = bottom = float("inf")
+    right = top = float("-inf")
+    for node in drainers + feeders:
+        left = min(node_pos[node][0], left)
+        right = max(node_pos[node][0], right)
+        bottom = min(node_pos[node][1], bottom)
+        top = max(node_pos[node][1], top)
+    
     node_id = first_intranidal_id
     for i, column in enumerate(columns):
         height = sum(column) + (num_compartments - 1) * spacing  # The height (in number of nodes) of the column
@@ -238,18 +227,22 @@ def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranida
         avm.add_edge_to_graph(graph, nearest, dv, random_plexiform_radius(), random_plexiform_length())
     
     # Generate cross-compartment vesels
-    for _ in range(num_cross_compartment_vessels):
-        start_col = random.randint(0, num_columns - 2)
-        start_compartment = random.randint(0, num_compartments - 1)
-        start_node_id = random.choice(columns[start_col][start_compartment])
-        end_col = normint(start_col + 1, num_columns - 1, start_col + 1)
-        end_compartment = random.choice([i for i in range(num_compartments) if i != start_compartment])
-        end_node_id = random.choice(columns[end_col][end_compartment])
-        avm.add_edge_to_graph(graph, start_node_id, end_node_id, random_plexiform_radius(), random_plexiform_length())
+    if num_compartments > 1:
+        for _ in range(num_cross_compartment_vessels):
+            start_col = random.randint(0, num_columns - 2)
+            start_compartment = random.randint(0, num_compartments - 1)
+            start_node_id = random.choice(columns[start_col][start_compartment])
+            end_col = start_col
+            while end_col == start_col:
+                end_col = normint(0, num_columns - 1, start_col, 2)
+            # end_col = random.choice([i for i in range(num_columns) if i != start_col])
+            end_compartment = random.choice([i for i in range(num_compartments) if i != start_compartment])
+            end_node_id = random.choice(columns[end_col][end_compartment])
+            avm.add_edge_to_graph(graph, start_node_id, end_node_id, random_plexiform_radius(), random_plexiform_length())
     
     # Generate the fistulous vessels as a continuous path through the nidus
     compartment = num_compartments // 2
-    start_id, start_index = "AF" + str(len(feeders) // 2), 0
+    start_id, start_index = fistula_start, 0
     for i in range(num_columns):
         if i == 0:
             end_index = random.randint(0, len(columns[0][compartment]) - 1)
@@ -260,7 +253,7 @@ def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranida
             end_index, end_node_id = choose_norm(columns[i][compartment], lerp(start_index, 0, len(columns[i - 1][compartment]) - 1, 0, len(columns[i][compartment]) - 1), 2)
             avm.add_edge_to_graph(graph, start_id, end_node_id, random_fistulous_radius(), random_fistulous_length(), type = avm.vessel.fistulous)
             start_index = end_index
-    avm.add_edge_to_graph(graph, columns[-1][compartment][start_index], "DV" + str(1 + len(drainers) // 2), random_fistulous_radius(), random_fistulous_length(), type = avm.vessel.fistulous)
+    avm.add_edge_to_graph(graph, columns[-1][compartment][start_index], fistula_end, random_fistulous_radius(), random_fistulous_length(), type = avm.vessel.fistulous)
     
     return graph, columns
 
