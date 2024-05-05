@@ -37,7 +37,7 @@ def choose_norm(list, mean, sd):
 # https://www.sciencedirect.com/science/article/pii/S1078588417307360 says diameter is 265 microns
 # https://sci-hubtw.hkvisa.net/10.1111/j.1440-1827.1981.tb02813.x is the og source that says diameter 265 microns
 # https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
-MEAN_PLEXIFORM_RADIUS = 0.01325
+MEAN_PLEXIFORM_RADIUS = 0.011
 def random_plexiform_radius() -> float:
     return MEAN_PLEXIFORM_RADIUS
     # return norm(0.01, None, MEAN_PLEXIFORM_RADIUS, (MEAN_PLEXIFORM_RADIUS - 0.01) / 3)
@@ -134,19 +134,17 @@ def gilbert(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int, pl
                 avm.add_edge_to_graph(graph, intranidal_nodes[j], intranidal_nodes[k], radius, length, plexiform_resistance if avm.PREDEFINED_RESISTANCE else avm.calc_resistance(radius, length))
     return graph
 
-def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranidal_id: int, node_pos: dict, num_compartments: int, num_columns: int, num_cross_compartment_vessels: int = 20, min_compartment_height = 10, max_compartment_height = 25, fistula_start = "AF2", fistula_end = "DV2", spacing: float = 3) -> tuple[nx.Graph, list[list[list]]]:
+def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranidal_id: int, node_pos: dict, num_compartments: int, num_columns: int, num_cross_compartment_vessels: int = 20, fistula_start = "AF2", fistula_end = "DV2", spacing: float = 3) -> tuple[nx.Graph, list[list[list]]]:
     """"""
     # Generate configuration
     # At first, columns[i][j] is the number of nodes in the `i`th column that are in the `j`th compartment
     # After calculating node positions, columns[i][j][k] is the id of the `k`th node in S, where S is the set of nodes in the `i`th column that are in the `j`th compartment
     columns = [[] for i in range(num_columns)]
     for j in range(num_compartments):
-        compartment_size = normint((min_compartment_height + max_compartment_height) // 2, max_compartment_height)
-        # compartment_size = 50
-        indices = np.linspace(-2, 2, num_columns)
-        num_nodes_on_far_sides = min_compartment_height
-        # num_nodes_on_far_sides = 30
-        values = num_nodes_on_far_sides + (compartment_size - num_nodes_on_far_sides) * np.exp(-np.power(indices, 2))
+        min_compartment_height = normint(30, 34)
+        max_compartment_height = normint(36, 40)
+        indices = np.linspace(-3, 3, num_columns)
+        values = min_compartment_height + (max_compartment_height - min_compartment_height) * np.exp(-np.power(indices, 2))
         compartment = [normint(value * 0.8, value + 2, value) for value in values]
         for i in range(num_columns):
             columns[i].append(compartment[i])

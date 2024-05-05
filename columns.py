@@ -31,7 +31,7 @@ print(len(feeder_sets))
 CALCULATE_ERROR = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 20
+ITERATIONS = 50
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data.csv"
@@ -93,31 +93,27 @@ def main():
         injections_without_missing_nodes = injections
         injection_pressures = list(injections_without_missing_nodes.values())
         all_stats = {}
-        num_compartments = 5
-        # num_compartments = random.randint(1, 5)
         # num_compartments = 5
-        num_columns = generate.normint(8, 12)
+        num_compartments = generate.normint(4, 6)
+        # num_compartments = random.randint(4, 6)
+        # num_compartments = 5
+        num_columns = generate.normint(6, 10)
         # num_columns = random.randint(6, 10)
         # num_columns = 10
-        min_compartment_height = generate.normint(14, 20)
-        # min_compartment_height = random.randint(5, 20)
-        # min_compartment_height = 17
-        max_compartment_height = min_compartment_height * 2
-        num_intercompartmental_vessels = generate.normint(80, 100)
-        # num_intercompartmental_vessels = random.randint(60, 100)
+        num_intercompartmental_vessels = generate.normint(90, 110)
         # num_intercompartmental_vessels = 90
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
         # print(f"{i}: {feeders} feeders and {drainers} drainers")
 
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
         network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
-        network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, min_compartment_height, max_compartment_height, fistula_start = "AF2", fistula_end = "DV2")
+        network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
 
         flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
         error = error if error else None
 
         for j, label in enumerate(injections_without_missing_nodes.keys()):
-            no_injection_graph = graphs[list(injections_without_missing_nodes.keys()).index((None, 0, label[2], label[3]))] if (None, 0, label[2], label[3]) in graphs else None
+            no_injection_graph = graphs[list(injections_without_missing_nodes.keys()).index((None, 0, label[2], label[3]))] if (None, 0, label[2], label[3]) in injections_without_missing_nodes else None
 
             flow = flows[:, j]
             pressure = pressures[:, j]
@@ -140,6 +136,7 @@ def main():
             #     plt.show()
 
             # avm.display(avm.get_nidus(graph), node_pos, color = "filling", fill_by_flow = True, cmap_min=0, cmap_max=30)
+            # avm.display(graph, node_pos, color = "filling", fill_by_flow = True, cmap_min=0, cmap_max=30)
             # plt.show()
 
 
@@ -148,8 +145,6 @@ def main():
             stats["Num columns"] = num_columns
             stats["Num compartments"] = num_compartments
             stats["Num cross vessels"] = num_intercompartmental_vessels
-            stats["Min height"] = min_compartment_height
-            stats["Max height"] = max_compartment_height
             stats["AF1"] = 1 if "AF1" in feeders else 0
             stats["AF2"] = 1 if "AF2" in feeders else 0
             stats["AF3"] = 1 if "AF3" in feeders else 0

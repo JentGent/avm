@@ -418,6 +418,55 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vesse
                             queue.append(next_node)
     return reached / num_intranidal_vessels * 100
 
+def calc_filling_post(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location, no_injection_digraph: nx.DiGraph = None) -> float:
+    """Calculates the percent of the nidus that an injection reaches.
+    
+    Args:
+        digraph: Graph after complete simulation (with calculated flow and pressure attributes).
+        intranidal_nodes: List of nodes in the nidus (the algorithm will only traverse vessels whose ends are in `intranidal_nodes`).
+        injection_location: The name of the node that is injected into.
+        no_injection_digraph: Graph after complete simulation of a pressure set without injection.
+        allow_upstream: If `True`, blood can travel against the direction of the flow if the pressure difference is low enough.
+    
+    Returns:
+        percent_filled: Percent of nidus nodes to which there exists a directed path from the injection location.
+        percent_filled_post: Percent of nidus nodes which are filled after the injection is complete.
+    """
+    nx.set_node_attributes(digraph, False, "reached")
+    nx.set_edge_attributes(digraph, False, "reached")
+    digraph.nodes[injection_location]["reached"] = True
+    queue = deque([injection_location])
+    reached_nodes = set(injection_location)
+    reached = 0
+    while queue:
+        n = len(queue)
+        for _ in range(n):
+            node = queue.popleft()
+            for self_node, next_node in digraph.out_edges(node):
+                if next_node not in intranidal_nodes or digraph[self_node][next_node]["reached"]: continue
+                digraph.nodes[next_node]["reached"] = True
+                digraph[self_node][next_node]["reached"] = True
+                reached += 1
+                reached_nodes.add(next_node)
+                queue.append(next_node)
+    queue = deque(reached_nodes)
+    reached_post = reached
+    while queue:
+        n = len(queue)
+        for _ in range(n):
+            node = queue.popleft()
+            for self_node, next_node in no_injection_digraph.out_edges(node):
+                if next_node not in intranidal_nodes or next_node in reached_nodes: continue
+                digraph.nodes[next_node]["reached"] = True
+                if next_node in digraph[self_node]:
+                    digraph[self_node][next_node]["reached"] = True
+                else:
+                    digraph[next_node][self_node]["reached"] = True
+                reached_post += 1
+                reached_nodes.add(next_node)
+                queue.append(next_node)
+    return reached / num_intranidal_vessels * 100, reached_post / num_intranidal_vessels * 100
+
 
 def calc_filling(digraph: nx.DiGraph, intranidal_nodes, pressure, all_edges, injection_pressure_mmHg, num_intranidal_vessels) -> float:
     """Calculates the percent of nidus vessels that are back-filled.
@@ -538,11 +587,14 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
                 stats[title + "min" + units] = round(value["min"], ROUND_DECIMALS) if attrs["count"] else 0
                 stats[title + "mean" + units] = round(value["total"] / attrs["count"], ROUND_DECIMALS) if attrs["count"] else 0
                 stats[title + "max" + units] = round(value["max"], ROUND_DECIMALS) if attrs["count"] else 0
+    
+    filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
     return stats | {
         "Feeder total flow (mL/min)": feeder_total,
         "Drainer total flow (mL/min)": drainer_total,
         "Mean rupture risk (%)": round(mean_risk, ROUND_DECIMALS),
-        "Percent filled (%)": round(calc_filling_bfs(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph), ROUND_DECIMALS) if injection_location else 0
+        "Percent filled (%)": round(filling, ROUND_DECIMALS),
+        "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
     }
 
 def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
