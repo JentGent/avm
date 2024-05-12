@@ -199,7 +199,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
             nx.draw_networkx_edges(graph, pos, node_size = 300, width=edge_widths, edge_color=edge_colors, edge_cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
         case "filling":
             edge_colors = [edge[2]["reached"] if "reached" in edge[2] else 0 for edge in graph.edges(data=True)]
-            edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [0, 10]) for edge in graph.edges(data=True)]
+            edge_widths = 1
             nx.draw_networkx_edges(graph, pos, node_size = 100, width=edge_widths, edge_color=edge_colors, edge_cmap=cmasher.get_sub_cmap(plt.cm.Blues, 0.3, 1), edge_vmin=0, edge_vmax=1)
     edge_labels = False
     match label:
@@ -512,7 +512,7 @@ def compute_rupture_risk(graph, p_min_mmHg):
     return np.mean(risks), max(risks)
 
 def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_min_mmHg = 6, injection_pressure_mmHg = 0, injection_location = 0):
-    """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`.
+    """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`. Writes some of the computed stats into the provided digraph.
     
     Args:
         digraph: Graph (result of `simulate()`).

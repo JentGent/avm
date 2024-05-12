@@ -53,15 +53,9 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-# for injection_location in [None, "DV1", "DV2", "DV3", "AF1", "AF2", "AF3", "AF4"]:
 for injection_location in [None, "DV1", "DV2", "DV3"]:
-# for injection_location in [None, "DV1"]:
-    # for injection_pressure in ([0, 30, 60, 90] if injection_location[0] == "A" else range(10, 51, 10)) if injection_location else [0]:
-    for injection_pressure in ([0, 10] if injection_location[0] == "A" else [10, 20, 30]) if injection_location else [0]:
-    # for injection_pressure in [30] if injection_location else [0]:
+    for injection_pressure in [10, 20, 30] if injection_location else [0]:
         for (hypotension, cvp), pressures in templates.items():
-            # if hypotension == "normal" and injection_location: continue
-            # if hypotension == "profound" and not injection_location: continue
             injections[(injection_location, injection_pressure, hypotension, cvp)] = [
                 pressures[0],
                 pressures[1] + (injection_pressure if injection_location == "AF1" else 0),
