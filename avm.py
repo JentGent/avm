@@ -191,6 +191,7 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
     node_colors = {
         node: ("lightblue" if filled else "pink") for node, filled in graph.nodes("reached" if fill_by_flow else "filled")
     }
+    
     nx.draw_networkx_nodes(graph, pos, node_size=100, node_color=[node_colors[node] for node in graph.nodes()])
     nx.draw_networkx_labels(graph, pos, labels = { node: "" if isinstance(node, (int, float)) else node for node in graph.nodes})
 
