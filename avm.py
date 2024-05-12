@@ -93,8 +93,10 @@ VESSELS_TEMPLATE = [
     ["DV2", 11, 0.25, 5, 130.5, "", vessel.drainer],
     ["DV3", 11, 0.25, 5, 130.5, "", vessel.drainer],
 ]
+
 for v in VESSELS_TEMPLATE:
     v[4] *= DYN_S_PER_CM5_TO_MMHG_MIN_PER_ML
+
 
 def calc_resistance(radius: float, length: float) -> float:
     """Uses the Hagen-Poiseuille equation to calculate resistance: resistance = (8 * length * viscosity) / (pi r^4)
@@ -106,7 +108,6 @@ def calc_resistance(radius: float, length: float) -> float:
     Returns:
         resistance: The resistance of the blood vessel in mmHg * min / mL
     """
-    # return 8 * length * VISCOSITY / np.pi / (radius ** 4)
     return 8 * length * VISCOSITY / np.pi / (radius ** 4) * DYN_S_PER_CM5_TO_MMHG_MIN_PER_ML
 
 
@@ -123,8 +124,11 @@ def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, flo
     edges = graph.edges([node])
     nx.set_edge_attributes(graph, {
                            edge: pressure for edge in edges if graph.edges[edge]["start"] == node}, "pressure")
+    
     for edge in edges:
+
         next_node = edge[1]
+
         if "pressure" not in graph.nodes[next_node] and graph.edges[edge]["start"] == node:
             next_pressure = pressure + graph.edges[edge]["pressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
             pressure_forward(graph, next_node, next_pressure, pressures)
@@ -141,13 +145,19 @@ def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
 
 
 def pressure_change(first_digraph: nx.DiGraph, second_digraph: nx.DiGraph) -> list[float]:
+    """Computes the difference in pressure from graph 1 to graph 2."""
     percent_differences = []
+
     for (node1, node2, pressure) in first_digraph.edges.data("pressure"):
+
         if node2 in second_digraph[node1]:
             percent_differences.append((second_digraph[node1][node2]["pressure"] - pressure) / pressure * 100)
+
         else:
             percent_differences.append((-second_digraph[node2][node1]["pressure"] - pressure) / pressure * 100)
+
     return percent_differences
+
 
 def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
@@ -166,11 +176,13 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
     pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
     # Fix node positions
-    xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [
-        coords[1] for node, coords in pos.items() if node not in node_pos]
+    xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [coords[1] for node, coords in pos.items() if node not in node_pos]
+
     if xs:
+
         mx, my = min(xs), min(ys)
         Mx, My = (max(xs) - mx) or 1, (max(ys) - my) or 1
+
         for node, coords in pos.items():
             if node not in node_pos.keys():
                 pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
@@ -189,42 +201,58 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
     min_flow, max_flow = min(flows), max(flows)
 
     match color:
+
         case "flow":
             edge_colors = [edge[2]["flow"] for edge in graph.edges(data=True)]
             edge_widths = [np.interp(edge[2]["pressure"], [min_pressure, max_pressure], [1, 10]) for edge in graph.edges(data=True)]
             nx.draw_networkx_edges(graph, pos, node_size = 300, width=edge_widths, edge_color=edge_colors, edge_cmap=plt.cm.cool, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+
         case "pressure":
             edge_colors = [edge[2]["pressure"] for edge in graph.edges(data=True)]
             edge_widths = [np.interp(edge[2]["flow"], [min_flow, max_flow], [1, 10]) for edge in graph.edges(data=True)]
             nx.draw_networkx_edges(graph, pos, node_size = 300, width=edge_widths, edge_color=edge_colors, edge_cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
+
         case "filling":
             edge_colors = [edge[2]["reached"] if "reached" in edge[2] else 0 for edge in graph.edges(data=True)]
             edge_widths = 1
             nx.draw_networkx_edges(graph, pos, node_size = 100, width=edge_widths, edge_color=edge_colors, edge_cmap=cmasher.get_sub_cmap(plt.cm.Blues, 0.3, 1), edge_vmin=0, edge_vmax=1)
+
     edge_labels = False
+
     match label:
+
         case "name":
             edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
+
         case "flow":
             edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in graph.edges(data=True)}
+
         case "pressure":
             edge_labels = {(edge[0], edge[1]): str(round(edge[2]["pressure"], 3)) for edge in graph.edges(data=True)}
-    if edge_labels: nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+
+    if edge_labels:
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+
     match color:
+
         case "flow":
             sm = plt.cm.ScalarMappable(cmap=plt.cm.cool, norm=plt.Normalize(vmin=min(edge_colors) if cmap_min is None else cmap_min, vmax=max(edge_colors) if cmap_max is None else cmap_max))
             sm.set_array([])
             colorbar = plt.colorbar(sm, ax = plt.gca(), label="Flow (mL/min)")
+
         case "pressure":
             sm = plt.cm.ScalarMappable(cmap=cmasher.get_sub_cmap(plt.cm.Reds, 0.3, 1), norm=plt.Normalize(vmin=min_pressure if cmap_min is None else cmap_min, vmax=max_pressure if cmap_max is None else cmap_max))
             sm.set_array([])
             colorbar = plt.colorbar(sm, ax = plt.gca(), label="Pressure (mm Hg)")
+
         case "filling":
             sm = plt.cm.ScalarMappable(cmap=cmasher.get_sub_cmap(plt.cm.Blues, 0.3, 1), norm=plt.Normalize(vmin=0, vmax=1))
             sm.set_array([])
             colorbar = plt.colorbar(sm, ax = plt.gca(), label="Filling")
+
     # plt.title(title)
     return colorbar
+
 
 def add_edge_to_graph(graph: nx.Graph, start, end, radius = 0.01325, length = 0.5, resistance = None, label = "", type = vessel.plexiform):
     graph.add_edge(
@@ -238,6 +266,7 @@ def add_edge_to_graph(graph: nx.Graph, start, end, radius = 0.01325, length = 0.
         label=label,
         type=type
     )
+
 
 def edges_to_graph(edges: list) -> nx.Graph:
     """Converts a list of edges to a graph in the right format ([starting node, ending node, radius (cm), length (cm), resistance (mmHg * min / mL), label]).
@@ -291,10 +320,14 @@ def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[st
     pressures = flows * np.tile(np.array([graph.edges[edge]["resistance"] for edge in all_edges]), (len(p_exts), 1)).T
 
     graphs = []
+
     for j, p_ext in enumerate(p_exts):
+
         result = graph.copy()
+
         nx.set_edge_attributes(result, {edge: flows[i][j] for i, edge in enumerate(all_edges)}, "flow")
         nx.set_edge_attributes(result, {edge: pressures[i][j] for i, edge in enumerate(all_edges)}, "pressure")
+
         result = nx.DiGraph([(
             edge[2]["end" if edge[2]["flow"] < 0 else "start"],
             edge[2]["start" if edge[2]["flow"] < 0 else "end"],
@@ -308,10 +341,12 @@ def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[st
                 "type": edge[2]["type"]
             }) for edge in result.edges(data=True)
         ])
+
         graphs.append(result)
     
     if return_error:
         return flows, pressures, all_edges, graphs, error
+    
     return flows, pressures, all_edges, graphs
 
 
@@ -334,6 +369,7 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
         error (if `return_error` is True): Error.
     """
     flow, pressure, all_edges, error = get_Q_and_P(graph, p_ext)
+
     graph = nx.DiGraph([(
         edge[2]["end" if edge[2]["flow"] < 0 else "start"],
         edge[2]["start" if edge[2]["flow"] < 0 else "end"],
@@ -347,9 +383,12 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
             "type": edge[2]["type"]
         }) for edge in graph.edges(data=True)
     ])
+
     if return_error:
         return flow, pressure, all_edges, graph, error
+    
     return flow, pressure, all_edges, graph
+
 
 def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
     """Returns a new graph that consists only of fistulous and plexiform edges of the given graph.
@@ -361,9 +400,11 @@ def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
         nidus
     """
     nidus = nx.DiGraph([edge for edge in digraph.edges(data=True) if edge[2]["type"] in (vessel.fistulous, vessel.plexiform)])
+
     for node, attrs in digraph.nodes(data=True):
         if node in nidus.nodes:
             nidus.add_node(node, **attrs)
+
     return nidus
 
 def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location, no_injection_digraph: nx.DiGraph = None, allow_upstream = False) -> float:
@@ -388,34 +429,50 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vesse
 
     nx.set_node_attributes(digraph, False, "reached")
     nx.set_edge_attributes(digraph, False, "reached")
+
     digraph.nodes[injection_location]["reached"] = True
     queue = deque([injection_location])
     reached = 0
+
     while queue:
+
         n = len(queue)
+
         for _ in range(n):
+
             node = queue.popleft()
+
             for self_node, next_node in digraph.out_edges(node):
-                if next_node not in intranidal_nodes or digraph[self_node][next_node]["reached"]: continue
+
+                if next_node not in intranidal_nodes or digraph[self_node][next_node]["reached"]:
+                    continue
+
                 digraph.nodes[next_node]["reached"] = True
                 digraph[self_node][next_node]["reached"] = True
                 reached += 1
                 queue.append(next_node)
+
             if allow_upstream:
+
                 for next_node, self_node in digraph.in_edges(node):
-                    if next_node not in intranidal_nodes or digraph[next_node][self_node]["reached"]: continue
+
+                    if next_node not in intranidal_nodes or digraph[next_node][self_node]["reached"]:
+                        continue
+
                     if no_injection_digraph.has_edge(next_node, self_node):
                         if (digraph[next_node][self_node]["pressure"] - no_injection_digraph[next_node][self_node]["pressure"]) / no_injection_digraph[next_node][self_node]["pressure"] < threshold:
                             digraph.nodes[next_node]["reached"] = True
                             digraph[next_node][self_node]["reached"] = True
                             reached += 1
                             queue.append(next_node)
+
                     else:
                         if (-digraph[next_node][self_node]["pressure"] - no_injection_digraph[self_node][next_node]["pressure"]) / no_injection_digraph[self_node][next_node]["pressure"] < threshold:
                             digraph.nodes[next_node]["reached"] = True
                             digraph[next_node][self_node]["reached"] = True
                             reached += 1
                             queue.append(next_node)
+
     return reached / num_intranidal_vessels * 100
 
 def calc_filling_post(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location, no_injection_digraph: nx.DiGraph = None) -> float:
@@ -434,37 +491,58 @@ def calc_filling_post(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vess
     """
     nx.set_node_attributes(digraph, False, "reached")
     nx.set_edge_attributes(digraph, False, "reached")
+
     digraph.nodes[injection_location]["reached"] = True
     queue = deque([injection_location])
     reached_nodes = set(injection_location)
     reached = 0
+
     while queue:
+        
         n = len(queue)
+        
         for _ in range(n):
+
             node = queue.popleft()
+
             for self_node, next_node in digraph.out_edges(node):
-                if next_node not in intranidal_nodes or digraph[self_node][next_node]["reached"]: continue
+                if next_node not in intranidal_nodes or digraph[self_node][next_node]["reached"]:
+                    continue
+
                 digraph.nodes[next_node]["reached"] = True
                 digraph[self_node][next_node]["reached"] = True
                 reached += 1
                 reached_nodes.add(next_node)
                 queue.append(next_node)
+
     queue = deque(reached_nodes)
     reached_post = reached
+
     while queue:
+
         n = len(queue)
+
         for _ in range(n):
+
             node = queue.popleft()
+
             for self_node, next_node in no_injection_digraph.out_edges(node):
-                if next_node not in intranidal_nodes or next_node in reached_nodes: continue
+
+                if next_node not in intranidal_nodes or next_node in reached_nodes:
+                    continue
+
                 digraph.nodes[next_node]["reached"] = True
+
                 if next_node in digraph[self_node]:
                     digraph[self_node][next_node]["reached"] = True
+
                 else:
                     digraph[next_node][self_node]["reached"] = True
+
                 reached_post += 1
                 reached_nodes.add(next_node)
                 queue.append(next_node)
+
     return reached / num_intranidal_vessels * 100, reached_post / num_intranidal_vessels * 100
 
 
@@ -483,12 +561,15 @@ def calc_filling(digraph: nx.DiGraph, intranidal_nodes, pressure, all_edges, inj
         percent_filled: Percent of nidus vessels whose pressure is less than the injection pressure.
     """
     nx.set_node_attributes(digraph, False, "filled")
+
     filled = 0
+    
     for i, p in enumerate(pressure):
         if all_edges[i][0] in intranidal_nodes and all_edges[i][1] in intranidal_nodes and p < injection_pressure_mmHg:
             digraph.nodes[all_edges[i][0]]["filled"] = True
             digraph.nodes[all_edges[i][1]]["filled"] = True
             filled += 1
+
     return filled / num_intranidal_vessels * 100
 
 def compute_rupture_risk(graph, p_min_mmHg):
@@ -499,17 +580,22 @@ def compute_rupture_risk(graph, p_min_mmHg):
         p_min_mmHg: CVP pressure in mmHg.
     """
     pressures = []
+
     for _, _, attr in graph.edges(data=True):
         if attr["type"] == vessel.fistulous or attr["type"] == vessel.plexiform:
             pressures.append(attr["pressure"])
+
     p_max_mmHg = 74
     p_min_mmHg = 5
     risks = []
+
     for pressure in pressures:
         risk = math.log(abs(pressure) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
         risk = max(0, min(risk, 100))
         risks.append(risk)
+
     return np.mean(risks), max(risks)
+
 
 def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_min_mmHg = 6, injection_pressure_mmHg = 0, injection_location = 0):
     """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`. Writes some of the computed stats into the provided digraph.
@@ -538,30 +624,39 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
 
     nodes = set()
     intranidal_nodes = set()
-
     feeder_total, drainer_total = 0, 0
+
     for n1, n2, attr in digraph.edges(data=True):
+
         nodes.add(n1)
         nodes.add(n2)
 
         if attr["type"] == vessel.feeder:
             feeder_total += attr["flow"] * (1 if isinstance(n2, str) and n2[:2] == "AF" else -1)
+
         if attr["type"] == vessel.drainer:
             drainer_total += attr["flow"] * (1 if isinstance(n1, str) and n1[:2] == "DV" else -1)
         
         if attr["type"] in [vessel.fistulous, vessel.plexiform]:
             intranidal_nodes.add(n1)
             intranidal_nodes.add(n2)
+
         types[None]["count"] += 1
+
         for stat, value in types[None].items():
             if stat not in ["count", "name"]:
                 value["total"] += attr[stat]
                 value["min"] = min(value["min"], attr[stat])
                 value["max"] = max(value["max"], attr[stat])
+
         for vessel_types in types:
+
             if attr["type"] == vessel_types or (isinstance(vessel_types, tuple) and attr["type"] in vessel_types):
+
                 types[vessel_types]["count"] += 1
+
                 for stat, value in types[vessel_types].items():
+
                     if stat not in ["count", "name"]:
                         value["total"] += attr[stat]
                         value["min"] = min(value["min"], attr[stat])
@@ -570,6 +665,7 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
     mean_risk, max_risk = compute_rupture_risk(digraph, p_min_mmHg)
 
     num_intranidal_vessels = types[vessel.fistulous]["count"] + types[vessel.plexiform]["count"]
+
     stats = {
         "Num intranidal nodes": len(intranidal_nodes),
         "Num nodes": len(nodes),
@@ -578,9 +674,13 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
         "Injection location": injection_location,
         "Injection pressure (mmHg)": injection_pressure_mmHg,
     }
+
     for vessel_type, attrs in types.items():
+
         stats[f"Num {attrs['name']}"] = attrs["count"]
+
         for stat, value in attrs.items():
+
             if stat not in ["count", "name"]:
                 title = f"{'' if attrs['name'] == 'vessels' else attrs['name'] + ' '}{stat} ".capitalize()
                 units = f" ({value['units']})"
@@ -589,6 +689,7 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
                 stats[title + "max" + units] = round(value["max"], ROUND_DECIMALS) if attrs["count"] else 0
     
     filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
+
     return stats | {
         "Feeder total flow (mL/min)": feeder_total,
         "Drainer total flow (mL/min)": drainer_total,
@@ -596,6 +697,7 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
         "Percent filled (%)": round(filling, ROUND_DECIMALS),
         "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
     }
+
 
 def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
     """Calculates flow and pressure differences for each vessel.
@@ -614,42 +716,59 @@ def calc_flow_batch(graph: nx.Graph, all_edges, p_exts) -> np.ndarray:
 
     # First law: sum of flow towards each node is 0
     ΔΔP = [[0 for _ in p_exts] for i in range(graph.number_of_nodes())]
+
     for i, node in enumerate(graph.nodes()):
+
         edges = graph.edges([node])
         flow = [0 for _ in range(num_edges)]
+
         for edge in edges:
+
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = 1
+
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -1
+
         Rv.append(flow)
 
     # Second law: total pressure change after traversing any closed loop is 0
     # ==> The only nonzero values of ΔΔP are those where there is an external pressure source
     for cycle in nx.cycle_basis(graph):  # nx.recursive_simple_cycles(graph)
+
         total_pressures = [0 for _ in p_exts]
         flow = [0 for _ in range(num_edges)]
+
         for i, node1 in enumerate(cycle):
+
             node2 = cycle[(i + 1) % len(cycle)]
             edge = (node1, node2)
+
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = -graph.edges[edge]["resistance"]
+
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = graph.edges[edge]["resistance"]
+
             for j, p_ext in enumerate(p_exts):
+
                 if edge in p_ext:
                     total_pressures[j] -= p_ext[edge]
+
                 elif (node2, node1) in p_ext:
                     total_pressures[j] += p_ext[(node2, node1)]
+
         Rv.append(flow)
         ΔΔP.append(total_pressures)
     
     result = np.linalg.lstsq(Rv, ΔΔP, rcond=None)
+
     return result[0], np.sum(np.abs(Rv @ result[0] - ΔΔP))
+
 
 def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
     """Calculates flow and pressure differences for each vessel.
@@ -668,43 +787,59 @@ def calc_flow(graph: nx.Graph, all_edges, p_ext) -> np.ndarray:
 
     # First law: sum of flow towards each node is 0
     ΔΔP = [0 for i in range(graph.number_of_nodes())]
+
     for i, node in enumerate(graph.nodes()):
+
         edges = graph.edges([node])
         flow = [0 for _ in range(num_edges)]
+
         for edge in edges:
+
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = 1
+
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = -1
+
         Rv.append(flow)
 
     # Second law: total pressure change after traversing any closed loop is 0
     # ==> The only nonzero values of ΔΔP are those where there is an external pressure source
     for cycle in nx.cycle_basis(graph):  # nx.recursive_simple_cycles(graph)
+
         total_pressure = 0
         flow = [0 for _ in range(num_edges)]
+
         for i, node1 in enumerate(cycle):
+
             node2 = cycle[(i + 1) % len(cycle)]
             edge = (node1, node2)
+
             if edge in all_edges:
                 index = all_edges.index(edge)
                 flow[index] = -graph.edges[edge]["resistance"]
+                
             else:
                 index = all_edges.index((edge[1], edge[0]))
                 flow[index] = graph.edges[edge]["resistance"]
+
             if edge in p_ext:
                 total_pressure -= p_ext[edge]
+
             elif (node2, node1) in p_ext:
                 total_pressure += p_ext[(node2, node1)]
+
         Rv.append(flow)
         ΔΔP.append(total_pressure)
     
     match SOLVE_MODE:
+
         case 1:
             result = np.linalg.lstsq(Rv, ΔΔP, rcond=None)
             return result[0].flatten(), np.sum(np.abs(Rv @ result[0] - ΔΔP))
+        
         case 2:
             T = np.array(Rv).T
             result = sp.sparse.linalg.spsolve(T @ Rv, T @ ΔΔP)
@@ -731,4 +866,5 @@ def get_Q_and_P(graph: nx.Graph, p_ext) -> tuple[np.ndarray, np.ndarray, list[tu
     pressure = flow * np.array([graph.edges[edge]["resistance"] for edge in all_edges])
     nx.set_edge_attributes(graph, {edge: flow[i] for i, edge in enumerate(all_edges)}, "flow")
     nx.set_edge_attributes(graph, {edge: pressure[i] for i, edge in enumerate(all_edges)}, "pressure")
+    
     return flow, pressure, all_edges, error
