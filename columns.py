@@ -1,14 +1,15 @@
 """Randomly generates a nidus with nodes arranged in columns."""
 
-import avm
-import matplotlib.pyplot as plt
-import copy
-import pandas as pd
-import os
-import generate
-import time
 from injections import injections
 from itertools import combinations
+import avm
+import copy
+import figures
+import generate
+import matplotlib.pyplot as plt
+import os
+import pandas as pd
+import time
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
 CALCULATE_ERROR = True
@@ -61,11 +62,6 @@ def main():
 
             stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
 
-            if label[0] == 'DV3' and label[2] == 'profound' and label[3] == 'elevated':
-                print(label)
-                avm.display(graph, node_pos, color="filling", fill_by_flow=True)
-                plt.show()
-
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]
             stats["Num columns"] = num_columns
@@ -86,6 +82,32 @@ def main():
                     all_stats["Error"] = []
 
                 all_stats["Error"].append(error)
+
+            print(label)
+
+            # Flow
+            plt.figure(figsize=(1920/100, 1080/100))
+            figures.display_flow(avm.get_nidus(graph), node_pos)
+
+            plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+
+            filename = f"temp/{j:02d}_{label[2]}_{label[0]}_flow.png"
+            plt.savefig(filename)
+            # plt.show()
+            plt.close()
+
+            # Pressure
+            plt.figure(figsize=(1920/100, 1080/100))
+            figures.display_pressure(avm.get_nidus(graph), node_pos)
+
+            plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+
+            filename = f"temp/{j:02d}_{label[2]}_{label[0]}_pressure.png"
+            plt.savefig(filename)
+            # plt.show()
+            plt.close()
 
         df = pd.DataFrame(all_stats)
         file_exists = os.path.isfile(FILE_NAME)
