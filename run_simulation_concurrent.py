@@ -23,8 +23,8 @@ def worker(i):
     injection_pressures = list(injections.values())
     all_stats = {}
     
-    num_compartments = generate.normint(4, 6)
-    num_columns = generate.normint(6, 10)
+    num_compartments = generate.normint(3, 6, sd=1)
+    num_columns = generate.normint(6, 10, sd=1)
     num_intercompartmental_vessels = generate.normint(90, 110)
     
     node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
