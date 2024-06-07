@@ -14,17 +14,11 @@
 import avm
 
 templates = {
-    # ("normal", "normal"): [74, 47, 50, 17, 6],
-    # ("minor", "normal"): [70, 45, 48, 15, 5],
-    # ("moderate", "normal"): [50, 32, 34, 12, 5],
-    # ("profound", "normal"): [25, 15, 16, 8, 4],
+    ("normal", "normal"): [74, 47, 47, -17, -6],
+    ("minor", "normal"): [70, 45, 45, -15, -5],
+    ("moderate", "normal"): [50, 32, 32, -12, -5],
+    ("profound", "normal"): [25, 15, 15, -8, -4],
     
-    # ("normal", "elevated"): [74, 47, 50, 17, 0],
-    # ("minor", "elevated"): [70, 45, 48, 15, 0],
-    # ("moderate", "elevated"): [50, 32, 34, 12, 2],
-    # ("profound", "elevated"): [25, 15, 16, 8, 2],
-    
-    # We are using these ones now (2024-05-12)
     ("normal", "elevated"): [74, 47, 47, -22, -12],
     ("minor", "elevated"): [70, 45, 45, -19, -10],
     ("moderate", "elevated"): [50, 32, 32, -14, -8],

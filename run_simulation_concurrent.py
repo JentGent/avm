@@ -40,7 +40,7 @@ def worker(i):
         pressure = pressures[:, j]
         graph = graphs[j]
         stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
-        
+        # print(f"{label}: {stats['Mean rupture risk (%)']} {stats['Percent filled (%)']} {stats['Drainer total flow (mL/min)']}")
         stats.update({
             "Blood pressure hypotension": label[2],
             "CVP pressure": label[3],
