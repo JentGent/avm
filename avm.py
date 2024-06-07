@@ -595,7 +595,7 @@ def compute_rupture_risk(graph, p_min_mmHg):
         risk = max(0, min(risk, 100))
         risks.append(risk)
 
-    return np.mean(risks), max(risks)
+    return min(risks), np.mean(risks), max(risks)
 
 
 def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_min_mmHg = 6, injection_pressure_mmHg = 0, injection_location = 0):
@@ -663,14 +663,13 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
                         value["min"] = min(value["min"], attr[stat])
                         value["max"] = max(value["max"], attr[stat])
     
-    mean_risk, max_risk = compute_rupture_risk(digraph, p_min_mmHg)
+    min_risk, mean_risk, max_risk = compute_rupture_risk(digraph, p_min_mmHg)
 
     num_intranidal_vessels = types[vessel.fistulous]["count"] + types[vessel.plexiform]["count"]
 
     stats = {
         "Num intranidal nodes": len(intranidal_nodes),
         "Num nodes": len(nodes),
-        "Max rupture risk (%)": round(max_risk, ROUND_DECIMALS),
         "Num intranidal vessels": num_intranidal_vessels,
         "Injection location": injection_location,
         "Injection pressure (mmHg)": injection_pressure_mmHg,
@@ -689,15 +688,17 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
                 stats[title + "mean" + units] = round(value["total"] / attrs["count"], ROUND_DECIMALS) if attrs["count"] else 0
                 stats[title + "max" + units] = round(value["max"], ROUND_DECIMALS) if attrs["count"] else 0
     
-    # filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
-    filling = 0 if injection_location is None else calc_filling_bfs(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location)
+    filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
+    # filling = 0 if injection_location is None else calc_filling_bfs(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location)
 
     return stats | {
         "Feeder total flow (mL/min)": feeder_total,
         "Drainer total flow (mL/min)": drainer_total,
+        "Min rupture risk (%)": round(min_risk, ROUND_DECIMALS),
         "Mean rupture risk (%)": round(mean_risk, ROUND_DECIMALS),
+        "Max rupture risk (%)": round(max_risk, ROUND_DECIMALS),
         "Percent filled (%)": round(filling, ROUND_DECIMALS),
-        # "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
+        "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
     }
 
 

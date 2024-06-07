@@ -45,7 +45,7 @@ def choose_norm(list, mean, sd):
 # https://www.sciencedirect.com/science/article/pii/S1078588417307360 says diameter is 265 microns
 # https://sci-hubtw.hkvisa.net/10.1111/j.1440-1827.1981.tb02813.x is the og source that says diameter 265 microns
 # https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
-MEAN_PLEXIFORM_RADIUS = 0.011
+MEAN_PLEXIFORM_RADIUS = 0.01
 
 def random_plexiform_radius() -> float:
     return MEAN_PLEXIFORM_RADIUS

@@ -40,9 +40,9 @@ def main():
 
         all_stats = {}
 
-        num_compartments = generate.normint(4, 6)
-        num_columns = generate.normint(6, 10)
-        num_intercompartmental_vessels = generate.normint(90, 110)
+        num_compartments = generate.normint(3, 6, sd=1)
+        num_columns = generate.normint(3, 7, sd=1)
+        num_intercompartmental_vessels = num_compartments * num_columns * 2
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
@@ -67,7 +67,7 @@ def main():
             stats["Num columns"] = num_columns
             stats["Num compartments"] = num_compartments
             stats["Num cross vessels"] = num_intercompartmental_vessels
-            stats["Fistula compartment number"] = drainers[len(drainers) // 2][2]
+            stats["Fistula compartment index"] = drainers[len(drainers) // 2][2]
 
             for key, value in stats.items():
 
@@ -88,6 +88,7 @@ def main():
             # # Flow
             # plt.figure(figsize=(1920/100, 1080/100))
             # figures.display_flow(graph, node_pos)
+            # plt.show()
 
             # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
             # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')

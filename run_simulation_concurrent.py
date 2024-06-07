@@ -24,8 +24,8 @@ def worker(i):
     all_stats = {}
     
     num_compartments = generate.normint(3, 6, sd=1)
-    num_columns = generate.normint(6, 10, sd=1)
-    num_intercompartmental_vessels = generate.normint(90, 110)
+    num_columns = generate.normint(3, 7, sd=1)
+    num_intercompartmental_vessels = num_compartments * num_columns * 2
     
     node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
     network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
@@ -47,7 +47,7 @@ def worker(i):
             "Num columns": num_columns,
             "Num compartments": num_compartments,
             "Num cross vessels": num_intercompartmental_vessels,
-            "Fistula compartment number": drainers[len(drainers) // 2][2]
+            "Fistula compartment index": drainers[len(drainers) // 2][2]
         })
         
         if CALCULATE_ERROR:
