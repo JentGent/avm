@@ -10,11 +10,12 @@ filenames = sorted([os.path.join(directory, file) for file in os.listdir(directo
 # Read images
 images = []
 for filename in filenames:
-    if 'flow' in filename:
+    if 'pressure' in filename:
+    # if 'flow' in filename:
         images.append(imageio.imread(filename))
 
 # Create a GIF
-output_path = os.path.join(directory, '1output.gif')
-imageio.mimsave(output_path, images, format='GIF', fps=1)
+output_path = os.path.join(directory, 'pressure_by_hypotension.gif')
+imageio.mimsave(output_path, images, format='GIF', fps=1, loop=0)
 
 print(f"GIF created at {output_path}")

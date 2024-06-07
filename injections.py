@@ -48,9 +48,8 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-# for injection_location in [None, "DV1", "DV2", "DV3"]:
-for injection_location in [None]:
-    for injection_pressure in range(0, 31) if injection_location else [0]:
+for injection_location in [None, "DV1", "DV2", "DV3"]:
+    for injection_pressure in [10, 20, 30] if injection_location else [0]:
         for (hypotension, cvp), pressures in templates.items():
             injections[(injection_location, injection_pressure, hypotension, cvp)] = [
                 pressures[0],
@@ -67,8 +66,6 @@ for injection_location in [None]:
 
 print(f"{len(injections)} pressure sets")
 for key, pressures in injections.items():
-    # for index, pressure in enumerate(pressures):
-    #     pressures[index] = pressure * avm.MMHG_TO_DYN_PER_SQUARE_CM
     injections[key] = {
         ("SP", 1): pressures[0],
         (3, "AF1"): pressures[1],

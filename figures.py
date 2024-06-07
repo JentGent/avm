@@ -131,7 +131,7 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
         fill_by_flow: If `True` and `graph` backfilling has been calculated, nodes reached by the flow algorithm will be blue; otherwise, nodes filled by the pressure algorithm will be blue.
     """
     filled_color = plt.cm.Blues(0.99)
-    unfilled_color = 'white'
+    unfilled_color = (1, 0.9, 0.9)
 
     pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
@@ -161,13 +161,35 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
     min_pressure, max_pressure = min(pressures), max(pressures)
     min_flow, max_flow = min(flows), max(flows)
 
-    edge_colors = [edge[2]["reached"] if "reached" in edge[2] else 0 for edge in graph.edges(data=True)]
-    edge_colors = [unfilled_color if color == 0 else filled_color for color in edge_colors]
-
-    edges = nx.draw_networkx_edges(graph, pos, node_size=0, edge_color=edge_colors)
-
+    edgelist = []
+    edgecolors = []
+    for u, v, data in graph.edges(data=True):
+        if data['type'] in [avm.vessel.plexiform, avm.vessel.fistulous]:
+            edgelist.append((u, v))
+            edgecolors.append(filled_color if data.get("reached") else unfilled_color)
+    edges = nx.draw_networkx_edges(
+        graph, pos, edgelist,
+        arrowstyle=matplotlib.patches.ArrowStyle('Simple', head_length=0.9, head_width=0.9, tail_width=0.3),
+        edge_color=edgecolors,
+        node_size = 0
+    )
     for edge in edges:
-        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=0.5, head_width=0.5, tail_width=0.2))
+        edge.set_edgecolor('black')
+        edge.set_linewidth(0.3)
+
+    edgelist = []
+    edgecolors = []
+    for u, v, data in graph.edges(data=True):
+        if data['type'] not in [avm.vessel.plexiform, avm.vessel.fistulous]:
+            edgelist.append((u, v))
+            edgecolors.append(filled_color if data.get("reached") else unfilled_color)
+    edges = nx.draw_networkx_edges(
+        graph, pos, edgelist,
+        arrowstyle=matplotlib.patches.ArrowStyle('Simple', head_length=1, head_width=1, tail_width=0.6),
+        edge_color=edgecolors,
+        node_size = 0
+    )
+    for edge in edges:
         edge.set_edgecolor('black')
         edge.set_linewidth(0.3)
 
@@ -226,7 +248,7 @@ def display_flow(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: floa
     edges = nx.draw_networkx_edges(graph, pos, node_size=0, edge_color=edge_colors, edge_cmap=plt.cm.Blues, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
 
     for edge in edges:
-        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=0.5, head_width=0.5, tail_width=0.2))
+        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=1, head_width=1, tail_width=0.4))
         edge.set_edgecolor('black')
         edge.set_linewidth(0.3)
 
@@ -289,7 +311,7 @@ def display_pressure(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: 
     edges = nx.draw_networkx_edges(graph, pos, node_size = 0, edge_color=edge_colors, edge_cmap=plt.cm.Reds, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
 
     for edge in edges:
-        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=0.5, head_width=0.5, tail_width=0.2))
+        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=1, head_width=1, tail_width=0.4))
         edge.set_edgecolor('black')
         edge.set_linewidth(0.3)
 

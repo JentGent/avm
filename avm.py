@@ -295,7 +295,7 @@ def edges_to_graph(edges: list) -> nx.Graph:
     return graph
 
 
-def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[str, float]], return_error: bool = False) -> tuple[np.ndarray, np.ndarray, list[tuple], list[nx.Graph], float]:
+def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[str, float]], return_error: bool = False) -> tuple[np.ndarray, np.ndarray, list[tuple], list[nx.DiGraph], float]:
     """Simulates the nidus with a batch of different sets of pressure values.
 
     Args:
@@ -689,14 +689,15 @@ def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_mi
                 stats[title + "mean" + units] = round(value["total"] / attrs["count"], ROUND_DECIMALS) if attrs["count"] else 0
                 stats[title + "max" + units] = round(value["max"], ROUND_DECIMALS) if attrs["count"] else 0
     
-    filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
+    # filling, filling_post = calc_filling_post(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location, no_injection_digraph) if injection_location else (0, 0)
+    filling = 0 if injection_location is None else calc_filling_bfs(digraph, intranidal_nodes, types[(vessel.fistulous, vessel.plexiform)]["count"], injection_location)
 
     return stats | {
         "Feeder total flow (mL/min)": feeder_total,
         "Drainer total flow (mL/min)": drainer_total,
         "Mean rupture risk (%)": round(mean_risk, ROUND_DECIMALS),
         "Percent filled (%)": round(filling, ROUND_DECIMALS),
-        "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
+        # "Percent filled post-injection (%)": round(filling_post, ROUND_DECIMALS),
     }
 
 

@@ -15,7 +15,7 @@ import time
 CALCULATE_ERROR = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 1
+ITERATIONS = 10
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data.csv"
@@ -83,31 +83,31 @@ def main():
 
                 all_stats["Error"].append(error)
 
-            print(label)
+            # print(label)
 
-            # Flow
-            plt.figure(figsize=(1920/100, 1080/100))
-            figures.display_flow(avm.get_nidus(graph), node_pos)
+            # # Flow
+            # plt.figure(figsize=(1920/100, 1080/100))
+            # figures.display_flow(graph, node_pos)
 
-            plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
-            plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
 
-            filename = f"temp/{j:02d}_{label[2]}_{label[0]}_flow.png"
-            plt.savefig(filename)
-            # plt.show()
-            plt.close()
+            # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_flow.png"
+            # plt.savefig(filename)
+            # # plt.show()
+            # plt.close()
 
-            # Pressure
-            plt.figure(figsize=(1920/100, 1080/100))
-            figures.display_pressure(avm.get_nidus(graph), node_pos)
+            # # Pressure
+            # plt.figure(figsize=(1920/100, 1080/100))
+            # figures.display_pressure(graph, node_pos)
 
-            plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
-            plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+            # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
 
-            filename = f"temp/{j:02d}_{label[2]}_{label[0]}_pressure.png"
-            plt.savefig(filename)
-            # plt.show()
-            plt.close()
+            # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_pressure.png"
+            # plt.savefig(filename)
+            # # plt.show()
+            # plt.close()
 
         df = pd.DataFrame(all_stats)
         file_exists = os.path.isfile(FILE_NAME)
