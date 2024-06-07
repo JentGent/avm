@@ -1,3 +1,5 @@
+"""Simulates a nidus with nodes arranged in columns. Uses multiprocessing."""
+
 import multiprocessing
 from injections import injections
 from itertools import combinations
