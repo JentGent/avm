@@ -28,10 +28,13 @@ def main():
     avm.PREDEFINED_RESISTANCE = False
     start_time = time.time()
 
-    if os.path.exists(FILE_NAME):
-        os.remove(FILE_NAME)
+    # if os.path.exists(FILE_NAME):
+    #     os.remove(FILE_NAME)
 
-    for i in range(1, 1 + ITERATIONS):
+    # for i in range(1, 1 + ITERATIONS):
+    i = 0
+    while True:
+        i += 1
 
         feeders = ['AF1', 'AF2', 'AF3', 'AF4']
         drainers = ['DV1', 'DV2', 'DV3']

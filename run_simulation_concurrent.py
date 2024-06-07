@@ -61,8 +61,8 @@ def worker(i):
     return all_stats
 
 def main():
-    if os.path.exists(FILE_NAME):
-        os.remove(FILE_NAME)
+    # if os.path.exists(FILE_NAME):
+    #     os.remove(FILE_NAME)
     
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         results = pool.map(worker, range(1, 1 + ITERATIONS))
