@@ -587,7 +587,6 @@ def compute_rupture_risk(graph, p_min_mmHg):
             pressures.append(attr["pressure"])
 
     p_max_mmHg = 74
-    p_min_mmHg = 5
     risks = []
 
     for pressure in pressures:

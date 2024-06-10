@@ -3,9 +3,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Load the data   
+# Load the data
 data = pd.read_csv(Path(__file__).parent / 'data.csv')
-
+print(data)
 # Filter data to include only data where the Injection location starts with 'D'
 filtered_data = data[
     data["Injection location"].notna() &
@@ -42,7 +42,8 @@ g = sns.FacetGrid(
     col="Blood pressure hypotension", 
     col_order=hypotension_order, 
     height=4, 
-    aspect=0.5
+    aspect=0.5,
+    gridspec_kws={'wspace': 0}
 )
 g.map_dataframe(
     sns.barplot, 
@@ -54,10 +55,17 @@ g.map_dataframe(
 )
 
 # Customize the FacetGrid
-g.set_titles("{col_name} hypotension")
+# g.set_titles("{col_name} hypotension")
 g.set_axis_labels("Injection pressure (mmHg)", "Average filling (%)")
-g.set(ylim=(0, 100))
-g.add_legend(title='CVP Pressure')
+g.set(ylim=(0, 95))
+# g.add_legend(title='CVP Pressure')
+
+for ax, title in zip(g.axes.flat, hypotension_order):
+    ax.set_title("Normotension" if title == "normal" else (title.capitalize() + " hypotension"))
+
+g.add_legend(title='Central venous pressure')
+for t, l in zip(g._legend.texts, ["Normal", "Elevated"]):  # Updated to correct access to texts
+    t.set_text(l)
 
 
 # Adjust the layout to ensure labels are visible
