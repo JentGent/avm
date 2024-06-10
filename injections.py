@@ -14,10 +14,10 @@
 import avm
 
 templates = {
-    # ("normal", "normal"): [74, 47, 47, -17, -6],
-    # ("minor", "normal"): [70, 45, 45, -15, -5],
-    # ("moderate", "normal"): [50, 32, 32, -12, -5],
-    # ("profound", "normal"): [25, 15, 15, -8, -4],
+    ("normal", "normal"): [74, 47, 47, -17, -6],
+    ("minor", "normal"): [70, 45, 45, -15, -5],
+    ("moderate", "normal"): [50, 32, 32, -12, -5],
+    ("profound", "normal"): [25, 15, 15, -8, -4],
     
     ("normal", "elevated"): [74, 47, 47, -22, -12],
     ("minor", "elevated"): [70, 45, 45, -19, -10],
@@ -42,7 +42,7 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-for injection_location in [None]:
+for injection_location in [None, "DV1", "DV2", "DV3"]:
     for injection_pressure in [10, 20, 30] if injection_location else [0]:
         for (hypotension, cvp), pressures in templates.items():
             injections[(injection_location, injection_pressure, hypotension, cvp)] = [
