@@ -6,11 +6,14 @@ import avm
 import copy
 import figures
 import generate
+import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
 import os
 import pandas as pd
 import time
+
+matplotlib.rc("font", serif="Arial")
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
 CALCULATE_ERROR = True
@@ -28,9 +31,11 @@ def main():
 
     injection_pressures = list(injections.values())
 
-    num_compartments = generate.normint(4, 6)
-    num_columns = generate.normint(6, 10)
-    num_intercompartmental_vessels = generate.normint(90, 110)
+    num_compartments = generate.normint(3, 6, sd=1)
+    num_columns = generate.normint(3, 7, sd=1)
+    num_compartments = 6
+    num_columns = 7
+    num_intercompartmental_vessels = num_compartments * num_columns * 2
     print(f"{num_compartments} compartments, {num_columns} columns")
 
     node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
@@ -56,19 +61,24 @@ def main():
 
         print(label)
 
+        stats = avm.get_stats(graph)
+
         plt.figure(figsize=(1920/100, 1080/100))
+        plt.title('Normotension' if hypotension == 'normal' else (hypotension.capitalize() + ' hypotension'), fontsize=20, pad=20)
         nx.set_edge_attributes(graph, False, "reached")
         for vessel in filled_vessels:
             if vessel not in graph.edges: vessel = (vessel[1], vessel[0])
             graph.edges[vessel]["reached"] = True
-        figures.display_flow(graph, node_pos)
+        figures.display_pressure(graph, node_pos)
+        # figures.display_flow(graph, node_pos)
 
-        plt.text(0.01, 0.99, f"{hypotension}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+        # plt.text(0.01, 0.99, f"Total nidal flow: {round(stats['Drainer total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
+        plt.text(0.01, 0.99, f"Mean vessel rupture risk: {round(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
 
         filename = f"temp/{frame:03d}_{label[2]}_{label[0]}_pressure.png"
-        # plt.savefig(filename)
-        plt.show()
-        # plt.close()
+        plt.savefig(filename)
+        # plt.show()
+        plt.close()
         frame += 1
 
     print(f"{time.time() - start_time} seconds")

@@ -16,6 +16,6 @@ for filename in filenames:
 
 # Create a GIF
 output_path = os.path.join(directory, 'pressure_by_hypotension.gif')
-imageio.mimsave(output_path, images, format='GIF', fps=1, loop=0)
+imageio.mimsave(output_path, images, format='gif', fps=1 / 4, loop=0)
 
 print(f"GIF created at {output_path}")

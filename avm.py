@@ -43,20 +43,20 @@ class vessel:
 
 # NODE_POS_TEMPLATE lists the positions of extranidal nodes in the graph.
 NODE_POS_TEMPLATE = {
-    1: [10, -200],
+    1: [-50, -200],
     2: [50, -250],
-    3: [75, -300],
+    3: [100, -325],
     4: [50, -200],
-    5: [100, -100],
+    5: [100, -50],
     6: [150, -275],
-    7: [150, -120],
-    8: [500, -120],
-    9: [350, -100],
-    10: [550, -100],
+    7: [150, -130],
+    8: [500, -130],
+    9: [350, -50],
+    10: [550, -50],
     11: [580, -300],
     12: [580, -590],
     13: [300, -590],
-    "SP": [10, -590],
+    "SP": [-50, -590],
     "AF1": [200, -500],
     "AF2": [200, -370],
     "AF3": [200, -200],
@@ -68,30 +68,30 @@ NODE_POS_TEMPLATE = {
 
 # VESSELS_TEMPLATE elements are formatted like [first node, second node, radius (cm), length (cm), resistance (mmHg * min / mL), label, type (optional)].
 VESSELS_TEMPLATE = [
-    [13, "SP", 0.75, 10, 3.2, "superior vena cava"],
-    ["SP", 1, 1, 10, 1, "aortic arch"],
+    [13, "SP", 0.75, 10, 3.2, "SVC"], # superior vena cava
+    ["SP", 1, 1, 10, 1, "AA"], # aortic arch
     [1, 2, 0.35, 10, 67.9, "SCA"],
     [1, 4, 0.35, 10, 67.9, "CCA"],
     [4, 5, 0.2, 10, 637.5, "ECA"],
     [5, 9, 0.01, 0.1, 1000000, ""],
     [9, 10, 0.01, 0.1, 1000000, ""],
     [10, 11, 0.125, 10, 4177.9, ""],
-    [12, 13, 0.4, 20, 79.7, "jugular veins"],
+    [12, 13, 0.4, 20, 79.7, "JV"], # jugular veins
     [4, 6, 0.25, 20, 522, "ICA"],
     [2, 3, 0.15, 25, 5037, "VA"],
     [6, 7, 0.1, 10, 10200, ""],
     [7, 8, 0.01, 0.1, 1000000, ""],
     [8, 11, 0.125, 10, 4177.9, ""],
-    [11, 12, 0.25, 10, 261, "dural venous sinuses"],
+    [11, 12, 0.25, 10, 261, "DVS"], # dural venous sinuses
 
     [3, "AF1", 0.125, 5.2, 2210, "PCA", vessel.feeder],
     [6, "AF2", 0.15, 3.7, 745.5, "MCA", vessel.feeder],
     [6, "AF3", 0.025, 3.7, 15725000, "ACA", vessel.feeder],
     [9, "AF4", 0.0125, 3, 12750000, "TFA", vessel.feeder],
 
-    ["DV1", 11, 0.25, 5, 130.5, "", vessel.drainer],
-    ["DV2", 11, 0.25, 5, 130.5, "", vessel.drainer],
-    ["DV3", 11, 0.25, 5, 130.5, "", vessel.drainer],
+    ["DV1", 11, 0.25, 5, 130.5, "DV1", vessel.drainer],
+    ["DV2", 11, 0.25, 5, 130.5, "DV2", vessel.drainer],
+    ["DV3", 11, 0.25, 5, 130.5, "DV3", vessel.drainer],
 ]
 
 for v in VESSELS_TEMPLATE:
