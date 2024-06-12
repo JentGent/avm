@@ -2,3 +2,5 @@
 __pycache__
 temp
 .DS_Store
+figures
+datasets

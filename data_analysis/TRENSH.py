@@ -3,7 +3,7 @@ from pathlib import Path
 import ast
 import matplotlib.pyplot as plt
 
-file_path = Path(__file__).parent / "10k_stats.csv"
+file_path = Path(__file__).parent / "data.csv"
 data = pd.read_csv(file_path)
 
 def get_blood_pressure(label):
@@ -23,7 +23,7 @@ data["Injection pressure"] = data["Label"].apply(lambda x: get_injection_pressur
 data["Injection location"] = data["Label"].apply(lambda x: get_DV(x))
 data["Average plexiform pressure"] = data["Plexiform pressure (mmHg)"].apply(lambda x: ast.literal_eval(x)[1])
 means = data.groupby(["Blood pressure", "Injection pressure", "Injection location"])["Average plexiform pressure"].mean().reset_index()
-# table = means.pivot(columns = "Blood pressure", index = "Injection pressure", values = "Average plexiform pressure")
+table = means.pivot(columns = "Blood pressure", index = "Injection pressure", values = "Average plexiform pressure")
 print(means.to_string())
 
 fig, ax = plt.subplots(figsize=(2, 1))
