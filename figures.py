@@ -132,7 +132,6 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
     """
     filled_color = plt.cm.Blues(0.99)
     unfilled_color = (1, 0.9, 0.9)
-
     pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
 
     # Fix node positions
@@ -147,67 +146,46 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
             if node not in node_pos.keys():
                 pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
-    # Nodes
-    node_colors = {
-        node: filled_color if filled else unfilled_color for node, filled in graph.nodes("reached")
-    }
-
-    # nx.draw_networkx_nodes(graph, pos, node_size=3, node_color=[node_colors[node] for node in graph.nodes()])
-    # nx.draw_networkx_labels(graph, pos, labels = { node: "" if isinstance(node, (int, float)) else node for node in graph.nodes})
-
     # Edges
-    pressures = [edge[2]["pressure"] for edge in graph.edges(data=True)]
-    flows = [edge[2]["flow"] for edge in graph.edges(data=True)]
-    min_pressure, max_pressure = min(pressures), max(pressures)
-    min_flow, max_flow = min(flows), max(flows)
+    edge_order = list(graph.edges(data=True))
+    edge_order = sorted(edge_order, key=lambda edge: 2 if edge[2]["type"] == avm.vessel.fistulous else 1 if edge[2]["reached"] else 0)
+    edge_colors = [filled_color if data.get("reached") else unfilled_color for u, v, data in edge_order]
+    
+    edges = nx.draw_networkx_edges(graph, pos, node_size=0, edgelist=edge_order, edge_color=edge_colors, edge_cmap=plt.cm.Blues, edge_vmin=min(edge_colors) if cmap_min is None else cmap_min, edge_vmax=max(edge_colors) if cmap_max is None else cmap_max)
 
-    edgelist = []
-    edgecolors = []
-    for u, v, data in graph.edges(data=True):
-        if data['type'] in [avm.vessel.plexiform, avm.vessel.fistulous]:
-            edgelist.append((u, v))
-            edgecolors.append(filled_color if data.get("reached") else unfilled_color)
-    edges = nx.draw_networkx_edges(
-        graph, pos, edgelist,
-        arrowstyle=matplotlib.patches.ArrowStyle('Simple', head_length=0.9, head_width=0.9, tail_width=0.3),
-        edge_color=edgecolors,
-        node_size = 0
-    )
-    for edge in edges:
-        edge.set_edgecolor('black')
-        edge.set_linewidth(0.3)
-
-    edgelist = []
-    edgecolors = []
-    for u, v, data in graph.edges(data=True):
-        if data['type'] not in [avm.vessel.plexiform, avm.vessel.fistulous]:
-            edgelist.append((u, v))
-            edgecolors.append(filled_color if data.get("reached") else unfilled_color)
-    edges = nx.draw_networkx_edges(
-        graph, pos, edgelist,
-        arrowstyle=matplotlib.patches.ArrowStyle('Simple', head_length=1, head_width=1, tail_width=0.6),
-        edge_color=edgecolors,
-        node_size = 0
-    )
-    for edge in edges:
-        edge.set_edgecolor('black')
-        edge.set_linewidth(0.3)
+    for i, edge in enumerate(edges):
+        is_fistulous = edge_order[i][2]["type"] == avm.vessel.fistulous
+        is_intranidal = edge_order[i][2]["type"] in [avm.vessel.plexiform, avm.vessel.fistulous]
+        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=1.5 if is_fistulous else 1 if is_intranidal else 2, head_width=1.5 if is_fistulous else 1 if is_intranidal else 2, tail_width=0.6 if is_fistulous else 0.4 if is_intranidal else 0.8))
+        # edge.set_edgecolor("white" if edge_order[i][2]["type"] == avm.vessel.fistulous and edge_order[i][2]["reached"] else "black")
+        edge.set_edgecolor("white" if edge_order[i][2]["type"] == avm.vessel.fistulous else "black")
+        edge.set_linewidth(2 if edge_order[i][2]["type"] == avm.vessel.fistulous else 0.3)
+        
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=0, vmax=1))
+    sm.set_array([])
+    colorbar = plt.colorbar(sm, ax=plt.gca(), pad=0.01)
+    colorbar.set_label("Flow (mL/min)", size=20, labelpad=20)
 
     edge_labels = False
 
     match label:
 
         case "name":
-            edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in graph.edges(data=True)}
+            edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in edge_order}
 
         case "flow":
-            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in graph.edges(data=True)}
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["flow"], 3)) for edge in edge_order}
 
         case "pressure":
-            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["pressure"], 3)) for edge in graph.edges(data=True)}
+            edge_labels = {(edge[0], edge[1]): str(round(edge[2]["pressure"], 3)) for edge in edge_order}
 
     if edge_labels:
-        nx.draw_networkx_edge_labels(graph, pos, edge_labels)
+        nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=15)
+        # nx.draw_networkx_labels(graph, pos)
+        plt.text(200 - 0, -500 - 10, "AF1", fontsize=15, horizontalalignment="right", verticalalignment="top")
+        plt.text(200 - 0, -370 - 10, "AF2", fontsize=15, horizontalalignment="right", verticalalignment="top")
+        plt.text(200 - 0, -200 + 10, "AF3", fontsize=15, horizontalalignment="right", verticalalignment="bottom")
+        plt.text(350 - 10, -150, "AF4", fontsize=15, horizontalalignment="right", verticalalignment="center")
 
 
 def display_flow(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = 0, cmap_max: float = 5, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):

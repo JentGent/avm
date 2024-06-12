@@ -12,6 +12,7 @@
 # calculate backfilling by comparing to 0 injection
 
 import avm
+import numpy as np
 
 templates = {
     # ("normal", "normal"): [74, 47, 47, -17, -6],
@@ -19,9 +20,9 @@ templates = {
     # ("moderate", "normal"): [50, 32, 32, -12, -5],
     # ("profound", "normal"): [25, 15, 15, -8, -4],
     
-    ("normal", "elevated"): [74, 47, 47, -22, -12],
-    ("minor", "elevated"): [70, 45, 45, -19, -10],
-    ("moderate", "elevated"): [50, 32, 32, -14, -8],
+    # ("normal", "elevated"): [74, 47, 47, -22, -12],
+    # ("minor", "elevated"): [70, 45, 45, -19, -10],
+    # ("moderate", "elevated"): [50, 32, 32, -14, -8],
     ("profound", "elevated"): [25, 15, 15, -9, -6],
 }
 
@@ -42,8 +43,8 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-for injection_location in [None]:
-    for injection_pressure in [10, 20, 30] if injection_location else [0]:
+for injection_location in ["DV3", None]:
+    for injection_pressure in np.linspace(0, 20, 21) if injection_location else [0]:
         for (hypotension, cvp), pressures in templates.items():
             injections[(injection_location, injection_pressure, hypotension, cvp)] = [
                 pressures[0],

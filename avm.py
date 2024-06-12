@@ -408,7 +408,7 @@ def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
 
     return nidus
 
-def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location, no_injection_digraph: nx.DiGraph = None, allow_upstream = False) -> float:
+def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location) -> float:
     """Calculates the percent of the nidus that an injection reaches.
     
     Args:
@@ -421,12 +421,6 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vesse
     Returns:
         percent_filled: Percent of nidus nodes to which there exists a directed path from the injection location.
     """
-    if allow_upstream:
-        no_injection_nidus = get_nidus(no_injection_digraph)
-        nidus = get_nidus(digraph)
-        all_changes = pressure_change(no_injection_nidus, nidus)
-        changes = [change / 100 for change in all_changes if change < 0 and change > -100]
-        threshold = threshold_otsu(np.array(changes)) if len(changes) else -10000
 
     nx.set_node_attributes(digraph, False, "reached")
     nx.set_edge_attributes(digraph, False, "reached")
@@ -452,27 +446,6 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vesse
                 digraph[self_node][next_node]["reached"] = True
                 reached += 1
                 queue.append(next_node)
-
-            if allow_upstream:
-
-                for next_node, self_node in digraph.in_edges(node):
-
-                    if next_node not in intranidal_nodes or digraph[next_node][self_node]["reached"]:
-                        continue
-
-                    if no_injection_digraph.has_edge(next_node, self_node):
-                        if (digraph[next_node][self_node]["pressure"] - no_injection_digraph[next_node][self_node]["pressure"]) / no_injection_digraph[next_node][self_node]["pressure"] < threshold:
-                            digraph.nodes[next_node]["reached"] = True
-                            digraph[next_node][self_node]["reached"] = True
-                            reached += 1
-                            queue.append(next_node)
-
-                    else:
-                        if (-digraph[next_node][self_node]["pressure"] - no_injection_digraph[self_node][next_node]["pressure"]) / no_injection_digraph[self_node][next_node]["pressure"] < threshold:
-                            digraph.nodes[next_node]["reached"] = True
-                            digraph[next_node][self_node]["reached"] = True
-                            reached += 1
-                            queue.append(next_node)
 
     return reached / num_intranidal_vessels * 100
 

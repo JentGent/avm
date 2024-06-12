@@ -75,7 +75,7 @@ def main():
         # plt.text(0.01, 0.99, f"Total nidal flow: {round(stats['Drainer total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
         plt.text(0.01, 0.99, f"Mean vessel rupture risk: {round(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
 
-        filename = f"temp/{frame:03d}_{label[2]}_{label[0]}_pressure.png"
+        filename = f"temp/pressure_injection/{frame:03d}_{label[2]}_{label[0]}.png"
         plt.savefig(filename)
         # plt.show()
         plt.close()

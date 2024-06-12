@@ -7,8 +7,12 @@ from pathlib import Path
 data = pd.read_csv(Path(__file__).parent / 'data .csv')
 
 DV = "Percent filled (%)"
+DV = "Percent filled post-injection (%)"
+# DV = "Drainer total flow (mL/min)"
+# DV = "Mean rupture risk (%)"
+# DV = "Max rupture risk (%)"
 
-# Filter data to include only data where the Injection location starts with 'D'
+filtered_data = data
 filtered_data = data[
     data["Injection location"].notna()
     & data["Injection location"].str.startswith('D')
@@ -16,7 +20,7 @@ filtered_data = data[
     # & (data["Injection location"].isna() | data["Injection location"].str.startswith('D'))
     # & data["Blood pressure hypotension"].str.lower().eq(["normal", "minor", "moderate", "profound"][3])
 ]
-print(filtered_data)
+# print(filtered_data)
 
 # Calculate the statistics for each group
 grouped_data = filtered_data.groupby(
