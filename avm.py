@@ -87,7 +87,7 @@ VESSELS_TEMPLATE = [
     [3, "AF1", 0.125, 5.2, 2210, "PCA", vessel.feeder],
     [6, "AF2", 0.15, 3.7, 745.5, "MCA", vessel.feeder],
     [6, "AF3", 0.025, 3.7, 15725000, "ACA", vessel.feeder],
-    [9, "AF4", 0.0125, 3, 12750000, "TFA", vessel.feeder],
+    # [9, "AF4", 0.0125, 3, 12750000, "TFA", vessel.feeder],
 
     ["DV1", 11, 0.25, 5, 130.5, "DV1", vessel.drainer],
     ["DV2", 11, 0.25, 5, 130.5, "DV2", vessel.drainer],
@@ -508,12 +508,15 @@ def calc_filling_post(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vess
                 digraph.nodes[next_node]["reached"] = True
 
                 if next_node in digraph[self_node]:
+                    if not digraph[self_node][next_node]["reached"]:
+                        reached_post += 1
                     digraph[self_node][next_node]["reached"] = True
 
                 else:
+                    if not digraph[next_node][self_node]["reached"]:
+                        reached_post += 1
                     digraph[next_node][self_node]["reached"] = True
 
-                reached_post += 1
                 reached_nodes.add(next_node)
                 queue.append(next_node)
 

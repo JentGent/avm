@@ -15,7 +15,7 @@ import time
 CALCULATE_ERROR = True
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 10
+ITERATIONS = 100
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data.csv"
@@ -31,10 +31,10 @@ def main():
     # if os.path.exists(FILE_NAME):
     #     os.remove(FILE_NAME)
 
-    # for i in range(1, 1 + ITERATIONS):
-    i = 0
-    while True:
-        i += 1
+    for i in range(1, 1 + ITERATIONS):
+    # i = 0
+    # while True:
+    #     i += 1
 
         feeders = ['AF1', 'AF2', 'AF3', 'AF4']
         drainers = ['DV1', 'DV2', 'DV3']
@@ -57,7 +57,7 @@ def main():
 
         for j, label in enumerate(injections.keys()):
 
-            no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3]))] if (None, 0, label[2], label[3]) in injections else None
+            no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3], "systolic"))] if (None, 0, label[2], label[3], "systolic") in injections else None
 
             flow = flows[:, j]
             pressure = pressures[:, j]
@@ -67,6 +67,7 @@ def main():
 
             stats["Blood pressure hypotension"] = label[2]
             stats["CVP pressure"] = label[3]
+            stats["Cardiac phase"] = label[4]
             stats["Num columns"] = num_columns
             stats["Num compartments"] = num_compartments
             stats["Num cross vessels"] = num_intercompartmental_vessels

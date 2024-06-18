@@ -15,15 +15,19 @@ import avm
 import numpy as np
 
 templates = {
-    # ("normal", "normal"): [74, 47, 47, -17, -6],
-    # ("minor", "normal"): [70, 45, 45, -15, -5],
-    # ("moderate", "normal"): [50, 32, 32, -12, -5],
-    # ("profound", "normal"): [25, 15, 15, -8, -4],
+    ("profound", "normal", "systolic"): [25, 17, 17, -9, -4],
+
+    # ("normal", "normal", "average"): [74, 47, 47, -17, -6],
+    # ("minor", "normal", "average"): [70, 45, 45, -15, -5],
+    # ("moderate", "normal", "average"): [50, 32, 32, -12, -5],
+    ("profound", "normal", "average"): [25, 15, 15, -8, -4],
     
-    # ("normal", "elevated"): [74, 47, 47, -22, -12],
-    # ("minor", "elevated"): [70, 45, 45, -19, -10],
-    # ("moderate", "elevated"): [50, 32, 32, -14, -8],
-    ("profound", "elevated"): [25, 15, 15, -9, -6],
+    # ("normal", "elevated", "average"): [74, 47, 47, -22, -12],
+    # ("minor", "elevated", "average"): [70, 45, 45, -19, -10],
+    # ("moderate", "elevated", "average"): [50, 32, 32, -14, -8],
+    # ("profound", "elevated", "average"): [25, 15, 15, -9, -6],
+    
+    ("profound", "normal", "diastolic"): [25, 14, 14, -7, -4],
 }
 
 # Uncomment these if you only want to generate specific injections
@@ -43,10 +47,10 @@ injections = {
 }
 
 # Uncomment this if you want to simulate every possible injection
-for injection_location in ["DV3", None]:
-    for injection_pressure in np.linspace(0, 20, 21) if injection_location else [0]:
-        for (hypotension, cvp), pressures in templates.items():
-            injections[(injection_location, injection_pressure, hypotension, cvp)] = [
+for injection_location in [None, "DV1"]:
+    for injection_pressure in np.linspace(20, 30, 11) if injection_location else [0]:
+        for (hypotension, cvp, cardiacPhase), pressures in templates.items():
+            injections[(injection_location, injection_pressure, hypotension, cvp, cardiacPhase)] = [
                 pressures[0],
                 pressures[1] + (injection_pressure if injection_location == "AF1" else 0),
                 pressures[1] + (injection_pressure if injection_location == "AF2" else 0),

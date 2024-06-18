@@ -65,7 +65,7 @@ def main():
 
         vessel_count = 0
         for start, end, type in graph.edges.data("type"):
-            if type in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer]:
+            if type in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer, avm.vessel.feeder]:
                 vessel_count += 1
 
         print(label)
@@ -79,7 +79,7 @@ def main():
             for vessel in filled_vessels:
                 if vessel not in graph.edges: vessel = (vessel[1], vessel[0])
                 for next_vessel in graph.out_edges(vessel[1]):
-                    if graph.edges[next_vessel]["type"] in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer]:
+                    if graph.edges[next_vessel]["type"] in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer, avm.vessel.feeder]:
                         new_filled_vessels.add(next_vessel)
             
             if new_filled_vessels == filled_vessels or injection_location is None:
