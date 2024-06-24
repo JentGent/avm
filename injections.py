@@ -15,40 +15,30 @@ import avm
 import numpy as np
 
 templates = {
-    ("profound", "normal", "systolic"): [25, 17, 17, -9, -4],
+    # ("normal", "normal", "systolic"): [74, 52, 52, -19, -6],
+    # ("minor", "normal", "systolic"): [70, 51, 51, -17, -5],
+    # ("moderate", "normal", "systolic"): [50, 34, 34, -13, -5],
+    # ("profound", "normal", "systolic"): [25, 17, 17, -9, -4],
 
     # ("normal", "normal", "average"): [74, 47, 47, -17, -6],
     # ("minor", "normal", "average"): [70, 45, 45, -15, -5],
     # ("moderate", "normal", "average"): [50, 32, 32, -12, -5],
-    ("profound", "normal", "average"): [25, 15, 15, -8, -4],
+    # ("profound", "normal", "average"): [25, 15, 15, -8, -4],
     
     # ("normal", "elevated", "average"): [74, 47, 47, -22, -12],
     # ("minor", "elevated", "average"): [70, 45, 45, -19, -10],
     # ("moderate", "elevated", "average"): [50, 32, 32, -14, -8],
-    # ("profound", "elevated", "average"): [25, 15, 15, -9, -6],
+    ("profound", "elevated", "average"): [25, 15, 15, -9, -6],
     
-    ("profound", "normal", "diastolic"): [25, 14, 14, -7, -4],
+    # ("normal", "normal", "diastolic"): [74, 43, 43, -15, -6],
+    # ("minor", "normal", "diastolic"): [70, 44, 44, -14, -5],
+    # ("moderate", "normal", "diastolic"): [50, 30, 30, -11, -5],
+    # ("profound", "normal", "diastolic"): [25, 14, 14, -7, -4],
 }
 
-# Uncomment these if you only want to generate specific injections
-injections = {
-
-    # ("", 0, "normal", "normal"): [74, 47, 47, 50, 50, 17, 17, 17, 6],
-
-    # ("DV3", 0, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12, 2],
-    # ("DV3", 10, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 10, 2],
-    # ("DV3", 20, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 20, 2],
-    # ("DV3", 30, "moderate", "elevated"): [50, 32, 32, 34, 34, 12, 12, 12 - 30, 2],
-
-    # ("DV1", 20, "normal", "normal"): [74, 47, 47, 50, 50, 17 - 20, 17, 17, 6],
-    # ("DV1", 20, "minor", "normal"): [70, 45, 45, 48, 48, 15 - 20, 15, 15, 5],
-    # ("DV3", 20, "minor", "normal"): [70, 45, 45, 48, 48, 15, 15, 15 - 20, 5],
-    # ("DV1", 20, "profound", "normal"): [25, 15, 15, 16, 16, 8 - 20, 8, 8, 4],
-}
-
-# Uncomment this if you want to simulate every possible injection
-for injection_location in [None, "DV1"]:
-    for injection_pressure in np.linspace(20, 30, 11) if injection_location else [0]:
+injections = {}
+for injection_location in [None, "DV3"]:
+    for injection_pressure in [20] if injection_location else [0]:
         for (hypotension, cvp, cardiacPhase), pressures in templates.items():
             injections[(injection_location, injection_pressure, hypotension, cvp, cardiacPhase)] = [
                 pressures[0],

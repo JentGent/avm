@@ -49,70 +49,96 @@ def main():
         print(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
-        network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
-        network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
+        full_network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
+        full_network, _ = generate.compartments(full_network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
 
-        flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
-        error = error if error else None
+        feeders = [edge for edge in full_network.edges(data=True) if edge[2]["type"] == avm.vessel.feeder and edge[1] != "AF4"]
+        # for occluded in feeders + [None]:
+        for occluded in [None, (6, "AF2", { "type": avm.vessel.feeder })]:
+            
+            network = full_network.copy()
+            if occluded:
+                network.remove_edge(occluded[0], occluded[1])
 
-        for j, label in enumerate(injections.keys()):
+            flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
+            error = error if error else None
 
-            no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3], "systolic"))] if (None, 0, label[2], label[3], "systolic") in injections else None
+            for j, label in enumerate(injections.keys()):
 
-            flow = flows[:, j]
-            pressure = pressures[:, j]
-            graph = graphs[j]
+                injection_location, injection_pressure, hypotension, cvp, cardiacPhase = label
 
-            stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
+                no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3], label[4]))]
 
-            stats["Blood pressure hypotension"] = label[2]
-            stats["CVP pressure"] = label[3]
-            stats["Cardiac phase"] = label[4]
-            stats["Num columns"] = num_columns
-            stats["Num compartments"] = num_compartments
-            stats["Num cross vessels"] = num_intercompartmental_vessels
-            stats["Fistula compartment index"] = drainers[len(drainers) // 2][2]
+                flow = flows[:, j]
+                pressure = pressures[:, j]
+                graph = graphs[j]
 
-            for key, value in stats.items():
+                if occluded is not None and occluded[1] == "AF1":
+                    if 3 not in graph[2]:
+                        attrs = graph[3][2]
+                        graph.remove_edge(3, 2)
+                        graph.add_edge(2, 3, **attrs)
+                    if 2 not in graph[1]:
+                        attrs = graph[2][1]
+                        graph.remove_edge(2, 1)
+                        graph.add_edge(1, 2, **attrs)
 
-                if key not in all_stats:
-                    all_stats[key] = []
+                # stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
+                stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
 
-                all_stats[key].append(value)
+                stats["Blood pressure hypotension"] = label[2]
+                stats["CVP pressure"] = label[3]
+                stats["Cardiac phase"] = label[4]
+                stats["Num columns"] = num_columns
+                stats["Num compartments"] = num_compartments
+                stats["Num cross vessels"] = num_intercompartmental_vessels
+                stats["Fistula compartment index"] = drainers[len(drainers) // 2][2]
+                stats["Occluded"] = occluded[1] if occluded else None
 
-            if CALCULATE_ERROR:
+                for key, value in stats.items():
 
-                if "Error" not in all_stats:
-                    all_stats["Error"] = []
+                    if key not in all_stats:
+                        all_stats[key] = []
 
-                all_stats["Error"].append(error)
+                    all_stats[key].append(value)
 
-            # print(label)
+                if CALCULATE_ERROR:
 
-            # # Flow
-            # plt.figure(figsize=(1920/100, 1080/100))
-            # figures.display_flow(graph, node_pos)
-            # plt.show()
+                    if "Error" not in all_stats:
+                        all_stats["Error"] = []
 
-            # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
-            # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+                    all_stats["Error"].append(error)
 
-            # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_flow.png"
-            # plt.savefig(filename)
-            # # plt.show()
-            # plt.close()
+                if occluded:
+                    graph.add_edge(occluded[0], occluded[1], occluded=True, **occluded[2])
 
-            # # Pressure
-            # plt.figure(figsize=(1920/100, 1080/100))
-            # figures.display_pressure(graph, node_pos)
+                # Flow
+                if injection_location is not None:
+                    print(label, occluded, stats["Percent filled post-injection (%)"])
+                    plt.figure(figsize=(1920/100, 1080/100))
+                    # figures.display_flow(graph, node_pos)
+                    figures.display_filling(avm.get_nidus(graph), node_pos)
+                    plt.show()
 
-            # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
-            # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+                # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+                # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
 
-            # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_pressure.png"
-            # plt.savefig(filename)
-            # # plt.show()
-            # plt.close()
+                # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_flow.png"
+                # plt.savefig(filename)
+                # # plt.show()
+                # plt.close()
+
+                # # Pressure
+                # plt.figure(figsize=(1920/100, 1080/100))
+                # figures.display_pressure(graph, node_pos)
+
+                # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+                # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+
+                # filename = f"temp/{j:02d}_{label[2]}_{label[0]}_pressure.png"
+                # plt.savefig(filename)
+                # # plt.show()
+                # plt.close()
 
         df = pd.DataFrame(all_stats)
         file_exists = os.path.isfile(FILE_NAME)

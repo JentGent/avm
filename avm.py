@@ -87,7 +87,7 @@ VESSELS_TEMPLATE = [
     [3, "AF1", 0.125, 5.2, 2210, "PCA", vessel.feeder],
     [6, "AF2", 0.15, 3.7, 745.5, "MCA", vessel.feeder],
     [6, "AF3", 0.025, 3.7, 15725000, "ACA", vessel.feeder],
-    # [9, "AF4", 0.0125, 3, 12750000, "TFA", vessel.feeder],
+    [9, "AF4", 0.0125, 3, 12750000, "TFA", vessel.feeder],
 
     ["DV1", 11, 0.25, 5, 130.5, "DV1", vessel.drainer],
     ["DV2", 11, 0.25, 5, 130.5, "DV2", vessel.drainer],
@@ -566,14 +566,14 @@ def compute_rupture_risk(graph, p_min_mmHg):
     risks = []
 
     for pressure in pressures:
-        risk = math.log(abs(pressure) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
+        risk = math.log(max(abs(pressure), p_min_mmHg) / p_min_mmHg) / math.log(p_max_mmHg / p_min_mmHg) * 100
         risk = max(0, min(risk, 100))
         risks.append(risk)
 
     return min(risks), np.mean(risks), max(risks)
 
 
-def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_min_mmHg = 6, injection_pressure_mmHg = 0, injection_location = 0):
+def get_stats(digraph: nx.DiGraph, no_injection_digraph: nx.DiGraph = None, p_min_mmHg = 4, injection_pressure_mmHg = 0, injection_location = 0):
     """Returns stats for different vessels (count and min/mean/max/total flow/pressure of all/fistulous/plexiform/feeder/drainer vessels) given the `graph` result of `simulate()`. Writes some of the computed stats into the provided digraph.
     
     Args:

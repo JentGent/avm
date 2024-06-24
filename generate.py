@@ -227,7 +227,7 @@ def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranida
 
         nearest, nearest_d = "AF1", (node_pos["AF1"][0] - node_pos[i][0]) ** 2 + (node_pos["AF1"][1] - node_pos[i][1]) ** 2
         
-        for feeder in feeders[1:]:
+        for feeder in [feeder for feeder in feeders if feeder not in ["AF1", "AF4"]]:
             d = (node_pos[feeder][0] - node_pos[i][0]) ** 2 + (node_pos[feeder][1] - node_pos[i][1]) ** 2
             if d < nearest_d:
                 nearest = feeder
