@@ -73,7 +73,6 @@ def random_fistulous_length() -> float:
     return MEAN_FISTULOUS_LENGTH
     # return norm(0.01, None, MEAN_FISTULOUS_LENGTH, (MEAN_FISTULOUS_LENGTH - 0.01) / 3)
 
-
 def two_connections(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes by going through each node and connecting it to two other new intranidal nodes.
 

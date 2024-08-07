@@ -12,13 +12,13 @@ import pandas as pd
 import time
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
-CALCULATE_ERROR = True
+CALCULATE_ERROR = False
 
 # ITERATIONS is the number of unique graphs to generate.
 ITERATIONS = 100
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
-FILE_NAME = "data.csv"
+FILE_NAME = "test.csv"
 
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
@@ -53,14 +53,16 @@ def main():
         full_network, _ = generate.compartments(full_network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
 
         feeders = [edge for edge in full_network.edges(data=True) if edge[2]["type"] == avm.vessel.feeder and edge[1] != "AF4"]
-        # for occluded in feeders + [None]:
-        for occluded in [None, (6, "AF2", { "type": avm.vessel.feeder })]:
+        # for occluded in [None] + feeders:
+        for occluded in [None]:
+        # for occluded in [None, (6, "AF2", { "type": avm.vessel.feeder })]:
             
-            network = full_network.copy()
-            if occluded:
-                network.remove_edge(occluded[0], occluded[1])
+            network = full_network
+            # network = full_network.copy()
+            # if occluded:
+            #     network.remove_edge(occluded[0], occluded[1])
 
-            flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
+            flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, injection_pressures, CALCULATE_ERROR)
             error = error if error else None
 
             for j, label in enumerate(injections.keys()):
@@ -110,15 +112,21 @@ def main():
                     all_stats["Error"].append(error)
 
                 if occluded:
-                    graph.add_edge(occluded[0], occluded[1], occluded=True, **occluded[2])
+                    graph.add_edge(occluded[0], occluded[1], occluded=True, pressure=0, **occluded[2])
+                
+                print(label, occluded, stats["Intranidal pressure min (mmHg)"], stats["Intranidal pressure mean (mmHg)"], stats["Intranidal pressure max (mmHg)"], stats["Min rupture risk (%)"], stats["Mean rupture risk (%)"], stats["Max rupture risk (%)"])
+                print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.feeder])
+                print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.drainer])
 
                 # Flow
-                if injection_location is not None:
-                    print(label, occluded, stats["Percent filled post-injection (%)"])
-                    plt.figure(figsize=(1920/100, 1080/100))
-                    # figures.display_flow(graph, node_pos)
-                    figures.display_filling(avm.get_nidus(graph), node_pos)
-                    plt.show()
+                # if injection_location:
+                #     print(label, occluded, stats["Percent filled post-injection (%)"])
+                #     plt.figure(figsize=(1920/100, 1080/100))
+                #     # figures.display_flow(graph, node_pos)
+                #     figures.bw(graph, node_pos)
+                #     # plt.text(0.01, 0.99, f"Hypotension: {hypotension}\nInjection: {injection_pressure} mmHg\nFilling: {int(stats['Percent filled post-injection (%)'])}%", transform=plt.gca().transAxes, fontsize=20, verticalalignment='top')
+                #     # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
+                #     plt.show()
 
                 # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
                 # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
@@ -131,6 +139,7 @@ def main():
                 # # Pressure
                 # plt.figure(figsize=(1920/100, 1080/100))
                 # figures.display_pressure(graph, node_pos)
+                # plt.show()
 
                 # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
                 # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')

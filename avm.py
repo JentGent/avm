@@ -13,7 +13,7 @@ from skimage.filters import threshold_otsu
 VISCOSITY = 0.035
 
 # If PREDEFINED_RESISTANCE is True, radius and length data is ignored, and the given resistance values are used; otherwise, radius and length are plugged into the Hagen–Poiseuille equation: resistance = (8 * length * viscosity) / (pi r^4)
-PREDEFINED_RESISTANCE = True
+PREDEFINED_RESISTANCE = False
 
 # x mmHg = x * MMHG_TO_DYN_PER_SQUARE_CM dyn/cm^2.
 MMHG_TO_DYN_PER_SQUARE_CM = 1333.22
@@ -111,52 +111,37 @@ def calc_resistance(radius: float, length: float) -> float:
     return 8 * length * VISCOSITY / np.pi / (radius ** 4) * DYN_S_PER_CM5_TO_MMHG_MIN_PER_ML
 
 
-def pressure_forward(graph: nx.DiGraph, node, pressure, pressures: dict[str, float]):
+def pressure_forward(graph: nx.DiGraph, node, pressure: float, pressures: dict[tuple, float]):
     """Steps through the graph to calculate absolute pressure.
 
     Args:
-        graph: The graph.
-        node: The name of the original node.
-        pressure The pressure of the original node.
-        pressures: A dictionary of known node : pressure values.
+        graph: The directed graph after simulation.
+        node: The name of the node from which to forward pressure drops.
+        pressure The pressure of the node.
+        pressures: A dictionary of external pressure gradients.
     """
-    nx.set_node_attributes(graph, {node: pressure}, "pressure")
-    edges = graph.edges([node])
-    nx.set_edge_attributes(graph, {
-                           edge: pressure for edge in edges if graph.edges[edge]["start"] == node}, "pressure")
+    nx.set_node_attributes(graph, { node: pressure }, "pressure")
+    edges = graph.edges(node)
     
     for edge in edges:
 
         next_node = edge[1]
 
-        if "pressure" not in graph.nodes[next_node] and graph.edges[edge]["start"] == node:
-            next_pressure = pressure + graph.edges[edge]["pressure"] * (-1 if graph.edges[edge]["start"] == node else 1)
+        if "pressure" not in graph.nodes[next_node]:
+
+            p = pressure
+            if (node, next_node) in pressures:
+                p += pressures[(node, next_node)]
+
+            elif (next_node, node) in pressures:
+                p -= pressures[(next_node, node)]
+
+            nx.set_node_attributes(graph, { node: p }, "pressure")
+            
+            next_pressure = p - graph.edges[edge]["pressure"]
+                
             pressure_forward(graph, next_node, next_pressure, pressures)
-
-
-def calc_pressures(graph: nx.Graph, pressures: dict[str, float]):
-    """Begins the calculation of absolute pressure through the graph.
-
-    Args:
-        graph: The graph.
-        pressures: A dictionary of known node : pressure values.
-    """
-    pressure_forward(graph, "SP", pressures["SP"], pressures)
-
-
-def pressure_change(first_digraph: nx.DiGraph, second_digraph: nx.DiGraph) -> list[float]:
-    """Computes the difference in pressure from graph 1 to graph 2."""
-    percent_differences = []
-
-    for (node1, node2, pressure) in first_digraph.edges.data("pressure"):
-
-        if node2 in second_digraph[node1]:
-            percent_differences.append((second_digraph[node1][node2]["pressure"] - pressure) / pressure * 100)
-
-        else:
-            percent_differences.append((-second_digraph[node2][node1]["pressure"] - pressure) / pressure * 100)
-
-    return percent_differences
+            graph.edges[edge]["pressure"] = (p + next_pressure) / 2
 
 
 def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
@@ -295,12 +280,13 @@ def edges_to_graph(edges: list) -> nx.Graph:
     return graph
 
 
-def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[str, float]], return_error: bool = False) -> tuple[np.ndarray, np.ndarray, list[tuple], list[nx.DiGraph], float]:
+def simulate_batch(graph: nx.Graph, reference_point, reference_pressure, p_exts: list[dict[str, float]], return_error: bool = False) -> tuple[np.ndarray, np.ndarray, list[tuple], list[nx.DiGraph], float]:
     """Simulates the nidus with a batch of different sets of pressure values.
 
     Args:
         graph: Graph from `edges_to_graph()` or `generate_nidus()`.
-        intranidal_nodes: List of nodes in the nidus to generate edges between.
+        reference_point: Node with a known absolute pressure.
+        reference_pressure: Known absolute pressure in mmHg.
         p_ext: A dictionary of known node : pressure values in mmHg.
         num_nidi: Number of nidi to simulate.
         num_expected_edges: Expected number of edges to generate in the nidus.
@@ -342,6 +328,8 @@ def simulate_batch(graph: nx.Graph, intranidal_nodes: list, p_exts: list[dict[st
                 "type": edge[2]["type"]
             }) for edge in result.edges(data=True)
         ])
+
+        # pressure_forward(result, reference_point, 0, p_ext)
 
         graphs.append(result)
     
@@ -550,7 +538,7 @@ def calc_filling(digraph: nx.DiGraph, intranidal_nodes, pressure, all_edges, inj
     return filled / num_intranidal_vessels * 100
 
 def compute_rupture_risk(graph, p_min_mmHg):
-    """Computes and prints the rupture risk for each vessel.
+    """Computes and prints the rupture risk for each intranidal vessel.
     
     Args:
         graph: Graph after complete simulation (with calculated flow and pressure attributes).
