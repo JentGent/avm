@@ -1,7 +1,6 @@
 """Randomly generates a nidus with nodes arranged in columns."""
 
 from injections import injections
-from itertools import combinations
 import avm
 import copy
 import figures

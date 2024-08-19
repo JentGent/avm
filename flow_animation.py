@@ -1,7 +1,6 @@
 """Randomly generates a nidus with nodes arranged in columns."""
 
 from injections import injections
-from itertools import combinations
 import avm
 import copy
 import figures
@@ -9,8 +8,6 @@ import generate
 import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
-import os
-import pandas as pd
 import time
 
 matplotlib.rc("font", serif="Arial")

@@ -1,4 +1,3 @@
-import random
 import networkx as nx
 import numpy as np
 import scipy as sp
@@ -7,7 +6,6 @@ from typing import Literal
 import math
 from collections import deque
 import cmasher
-from skimage.filters import threshold_otsu
 
 # VISCOSITY is the viscosity of blood in Poise.
 VISCOSITY = 0.035
@@ -396,6 +394,7 @@ def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
 
     return nidus
 
+
 def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location) -> float:
     """Calculates the percent of the nidus that an injection reaches.
     
@@ -436,6 +435,7 @@ def calc_filling_bfs(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vesse
                 queue.append(next_node)
 
     return reached / num_intranidal_vessels * 100
+
 
 def calc_filling_post(digraph: nx.DiGraph, intranidal_nodes, num_intranidal_vessels, injection_location, no_injection_digraph: nx.DiGraph = None) -> float:
     """Calculates the percent of the nidus that an injection reaches.

@@ -4,8 +4,23 @@ from scipy.special import comb
 import networkx as nx
 import random
 import avm
-import math
 import numpy as np
+
+# MEAN_PLEXIFORM_RADIUS, MEAN_PLEXIFORM_LENGTH, MEAN_FISTULOUS_RADIUS, and MEAN_FISTULOUS_LENGTH are all measured in cm.
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7390970/ says radius is about 50 microns
+# https://www.sciencedirect.com/science/article/pii/S1078588417307360 says diameter is 265 microns
+# https://sci-hubtw.hkvisa.net/10.1111/j.1440-1827.1981.tb02813.x is the og source that says diameter 265 microns
+# https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
+MEAN_PLEXIFORM_RADIUS = 0.01
+
+# https://www.sciencedirect.com/science/article/pii/S1350453398000599 says 5 mm as length
+MEAN_PLEXIFORM_LENGTH = 0.05  # No source, 1996 paper had no source either
+
+# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9537653/ fistulas with diameter 200 microns
+MEAN_FISTULOUS_RADIUS = MEAN_PLEXIFORM_RADIUS * 2
+
+MEAN_FISTULOUS_LENGTH = 0.05
+
 
 def lerp(x, a, b, c, d):
     """Computes the linear interpolation between c and d, based on the relative position of x between a and b."""
@@ -40,38 +55,25 @@ def choose_norm(list, mean, sd):
     return index, list[index]
 
 
-# MEAN_PLEXIFORM_RADIUS, MEAN_PLEXIFORM_LENGTH, MEAN_FISTULOUS_RADIUS, and MEAN_FISTULOUS_LENGTH are all measured in cm.
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7390970/ says radius is about 50 microns
-# https://www.sciencedirect.com/science/article/pii/S1078588417307360 says diameter is 265 microns
-# https://sci-hubtw.hkvisa.net/10.1111/j.1440-1827.1981.tb02813.x is the og source that says diameter 265 microns
-# https://journals.sagepub.com/doi/epdf/10.1097/00004647-199708000-00009?src=getftr this paper explains that they artificially increased the resistances to account for the resistance lost by approximating the curved vessels as straight
-MEAN_PLEXIFORM_RADIUS = 0.01
-
 def random_plexiform_radius() -> float:
     return MEAN_PLEXIFORM_RADIUS
     # return norm(0.01, None, MEAN_PLEXIFORM_RADIUS, (MEAN_PLEXIFORM_RADIUS - 0.01) / 3)
 
-
-# https://www.sciencedirect.com/science/article/pii/S1350453398000599 says 5 mm as length
-MEAN_PLEXIFORM_LENGTH = 0.05  # No source, 1996 paper had no source either
 
 def random_plexiform_length() -> float:
     return MEAN_PLEXIFORM_LENGTH
     # return norm(0.01, None, MEAN_PLEXIFORM_LENGTH, (MEAN_PLEXIFORM_LENGTH - 0.01) / 3)
 
 
-# https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9537653/ fistulas with diameter 200 microns
-MEAN_FISTULOUS_RADIUS = MEAN_PLEXIFORM_RADIUS * 2
-
 def random_fistulous_radius() -> float:
     return MEAN_FISTULOUS_RADIUS
     # return norm(0.01, None, MEAN_FISTULOUS_RADIUS, (MEAN_FISTULOUS_RADIUS - 0.01) / 3)
 
-MEAN_FISTULOUS_LENGTH = 0.05
 
 def random_fistulous_length() -> float:
     return MEAN_FISTULOUS_LENGTH
     # return norm(0.01, None, MEAN_FISTULOUS_LENGTH, (MEAN_FISTULOUS_LENGTH - 0.01) / 3)
+
 
 def two_connections(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes by going through each node and connecting it to two other new intranidal nodes.
@@ -94,6 +96,7 @@ def two_connections(graph: nx.Graph, intranidal_nodes: list, plexiform_resistanc
 
     return graph
 
+
 def stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: list[list[float]], plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes with a stochastic block model
 
@@ -114,6 +117,7 @@ def stochastic(graph: nx.Graph, intranidal_nodes: list, sizes: list[int], p: lis
 
     return graph
 
+
 def linear(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph from a given graph and its intranidal nodes by connecting the intranidal nodes in a single path.
 
@@ -129,6 +133,7 @@ def linear(graph: nx.Graph, intranidal_nodes: list, plexiform_resistance: float 
         avm.add_edge_to_graph(graph, n1, n2, radius, length, plexiform_resistance if avm.PREDEFINED_RESISTANCE else avm.calc_resistance(radius, length))
 
     return graph
+
 
 def gilbert(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int, plexiform_resistance: float = 81600) -> nx.Graph:
     """Generates a new graph with a random nidus from a given graph and its intranidal nodes.
@@ -152,6 +157,7 @@ def gilbert(graph: nx.Graph, intranidal_nodes: list, num_expected_edges: int, pl
                 avm.add_edge_to_graph(graph, intranidal_nodes[j], intranidal_nodes[k], radius, length, plexiform_resistance if avm.PREDEFINED_RESISTANCE else avm.calc_resistance(radius, length))
 
     return graph
+
 
 def compartments(graph: nx.Graph, feeders: list, drainers: list, first_intranidal_id: int, node_pos: dict, num_compartments: int, num_columns: int, num_cross_compartment_vessels: int = 20, fistula_start = "AF2", fistula_end = "DV2", spacing: float = 3) -> tuple[nx.Graph, list[list[list]]]:
     """"""

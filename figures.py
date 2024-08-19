@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color_is_flow: bool = True, label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
 
@@ -189,6 +190,7 @@ def display_labels(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: fl
     colorbar = plt.colorbar(sm, ax=plt.gca(), pad=0.01)
     colorbar.set_label("Filling", size=20, labelpad=20)
 
+
 def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
 
@@ -250,7 +252,6 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
     colorbar.set_label("Filling", size=20, labelpad=20)
 
 
-
 def display_flow(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = 0, cmap_max: float = 5, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
     """Displays the graph.
 
@@ -303,8 +304,7 @@ def display_flow(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: floa
     plt.text(200 - 0, -370 - 10, "AF2", fontsize=15, horizontalalignment="right", verticalalignment="top")
     plt.text(200 - 0, -200 + 10, "AF3", fontsize=15, horizontalalignment="right", verticalalignment="bottom")
     plt.text(350 - 10, -150, "AF4", fontsize=15, horizontalalignment="right", verticalalignment="center")
-        
-
+    
     sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=min(edge_colors) if cmap_min is None else cmap_min, vmax=max(edge_colors) if cmap_max is None else cmap_max))
     sm.set_array([])
     colorbar = plt.colorbar(sm, ax=plt.gca(), pad=0.01)
@@ -313,7 +313,6 @@ def display_flow(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: floa
     ticks = colorbar.ax.get_yticklabels()
     ticks[-1].set_text("≥" + ticks[-1].get_text())
     colorbar.ax.set_yticklabels(ticks)
-
 
 
 def display_pressure(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = 0, cmap_max: float = 100, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
@@ -388,4 +387,3 @@ def display_pressure(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: 
         plt.text(200 - 0, -370 - 10, "AF2", fontsize=15, horizontalalignment="right", verticalalignment="top")
         plt.text(200 - 0, -200 + 10, "AF3", fontsize=15, horizontalalignment="right", verticalalignment="bottom")
         plt.text(350 - 10, -150, "AF4", fontsize=15, horizontalalignment="right", verticalalignment="center")
-
