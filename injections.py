@@ -21,14 +21,14 @@ templates = {
     # ("profound", "normal", "systolic"): [25, 17, 17, -9, -4],
 
     ("normal", "normal", "average"): [74, 47, 47, -17, -6],
-    # ("minor", "normal", "average"): [70, 45, 45, -15, -5],
-    # ("moderate", "normal", "average"): [50, 32, 32, -12, -5],
-    # ("profound", "normal", "average"): [25, 15, 15, -8, -4],
+    ("minor", "normal", "average"): [70, 45, 45, -15, -5],
+    ("moderate", "normal", "average"): [50, 32, 32, -12, -5],
+    ("profound", "normal", "average"): [25, 15, 15, -8, -4],
     
-    # ("normal", "elevated", "average"): [74, 47, 47, -22, -12],
-    # ("minor", "elevated", "average"): [70, 45, 45, -19, -10],
-    # ("moderate", "elevated", "average"): [50, 32, 32, -14, -8],
-    # ("profound", "elevated", "average"): [25, 15, 15, -9, -6],
+    ("normal", "elevated", "average"): [74, 47, 47, -22, -12],
+    ("minor", "elevated", "average"): [70, 45, 45, -19, -10],
+    ("moderate", "elevated", "average"): [50, 32, 32, -14, -8],
+    ("profound", "elevated", "average"): [25, 15, 15, -9, -6],
     
     # ("normal", "normal", "diastolic"): [74, 43, 43, -15, -6],
     # ("minor", "normal", "diastolic"): [70, 44, 44, -14, -5],
@@ -37,8 +37,8 @@ templates = {
 }
 
 injections = {}
-for injection_location in [None]:
-    for injection_pressure in [20, 30] if injection_location else [0]:
+for injection_location in [None, "DV1", "DV2", "DV3"]:
+    for injection_pressure in [10, 20, 30] if injection_location else [0]:
         for (hypotension, cvp, cardiacPhase), pressures in templates.items():
             injections[(injection_location, injection_pressure, hypotension, cvp, cardiacPhase)] = [
                 pressures[0],

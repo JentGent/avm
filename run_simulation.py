@@ -53,8 +53,8 @@ def main():
         full_network, _ = generate.compartments(full_network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
 
         feeders = [edge for edge in full_network.edges(data=True) if edge[2]["type"] == avm.vessel.feeder and edge[1] != "AF4"]
-        # for occluded in [None] + feeders:
-        for occluded in [None]:
+        for occluded in [None] + feeders:
+        # for occluded in [None]:
         # for occluded in [None, (6, "AF2", { "type": avm.vessel.feeder })]:
             
             network = full_network
@@ -86,7 +86,8 @@ def main():
                         graph.add_edge(1, 2, **attrs)
 
                 # stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
-                stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
+                # stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
+                stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=4, injection_location=label[0])
 
                 stats["Blood pressure hypotension"] = label[2]
                 stats["CVP pressure"] = label[3]
@@ -114,9 +115,9 @@ def main():
                 if occluded:
                     graph.add_edge(occluded[0], occluded[1], occluded=True, pressure=0, **occluded[2])
                 
-                print(label, occluded, stats["Intranidal pressure min (mmHg)"], stats["Intranidal pressure mean (mmHg)"], stats["Intranidal pressure max (mmHg)"], stats["Min rupture risk (%)"], stats["Mean rupture risk (%)"], stats["Max rupture risk (%)"])
-                print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.feeder])
-                print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.drainer])
+                # print(label, occluded, stats["Intranidal pressure min (mmHg)"], stats["Intranidal pressure mean (mmHg)"], stats["Intranidal pressure max (mmHg)"], stats["Min rupture risk (%)"], stats["Mean rupture risk (%)"], stats["Max rupture risk (%)"])
+                # print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.feeder])
+                # print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.drainer])
 
                 # Flow
                 # if injection_location:
