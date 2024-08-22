@@ -10,20 +10,29 @@ import matplotlib.pyplot as plt
 import os
 import pandas as pd
 import time
+import logging
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
 CALCULATE_ERROR = False
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = 100
+ITERATIONS = float('inf')
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
-FILE_NAME = "test.csv"
+FILE_NAME = "data-2024-08-22-mac.csv"
 
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
 
+
 def main():
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
 
     avm.PREDEFINED_RESISTANCE = False
     start_time = time.time()
@@ -31,10 +40,10 @@ def main():
     # if os.path.exists(FILE_NAME):
     #     os.remove(FILE_NAME)
 
-    for i in range(1, 1 + ITERATIONS):
-    # i = 0
-    # while True:
-    #     i += 1
+    i = -1
+    while i < ITERATIONS:
+
+        i += 1
 
         feeders = ['AF1', 'AF2', 'AF3', 'AF4']
         drainers = ['DV1', 'DV2', 'DV3']
@@ -46,28 +55,20 @@ def main():
         num_compartments = generate.normint(3, 6, sd=1)
         num_columns = generate.normint(3, 7, sd=1)
         num_intercompartmental_vessels = num_compartments * num_columns * 2
-        print(f"{i}: {num_compartments} compartments, {num_columns} columns")
+        logger.info(f"{i}: {num_compartments} compartments, {num_columns} columns")
 
         node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
         full_network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
         full_network, _ = generate.compartments(full_network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
-
         feeders = [edge for edge in full_network.edges(data=True) if edge[2]["type"] == avm.vessel.feeder and edge[1] != "AF4"]
+
         for occluded in [None] + feeders:
-        # for occluded in [None]:
-        # for occluded in [None, (6, "AF2", { "type": avm.vessel.feeder })]:
             
             network = full_network
-            # network = full_network.copy()
-            # if occluded:
-            #     network.remove_edge(occluded[0], occluded[1])
-
             flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, injection_pressures, CALCULATE_ERROR)
             error = error if error else None
 
             for j, label in enumerate(injections.keys()):
-
-                injection_location, injection_pressure, hypotension, cvp, cardiacPhase = label
 
                 no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3], label[4]))]
 
@@ -85,9 +86,7 @@ def main():
                         graph.remove_edge(2, 1)
                         graph.add_edge(1, 2, **attrs)
 
-                # stats = avm.get_stats(graph, no_injection_graph, abs(injections[label][(12, 13)]), label[1], label[0])
-                # stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
-                stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=4, injection_location=label[0])
+                stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
 
                 stats["Blood pressure hypotension"] = label[2]
                 stats["CVP pressure"] = label[3]
@@ -154,7 +153,7 @@ def main():
         file_exists = os.path.isfile(FILE_NAME)
         df.to_csv(FILE_NAME, mode="a", index=False, header=not file_exists)
 
-    print(f"{time.time() - start_time} seconds")
+    logger.info(f"{time.time() - start_time} seconds")
 
 
 if __name__ == "__main__":
