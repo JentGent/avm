@@ -40,7 +40,7 @@ def main():
     # if os.path.exists(FILE_NAME):
     #     os.remove(FILE_NAME)
 
-    i = -1
+    i = 0
     while i < ITERATIONS:
 
         i += 1
