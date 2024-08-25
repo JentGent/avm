@@ -377,16 +377,21 @@ def simulate(graph: nx.Graph, intranidal_nodes: list, p_ext: dict[str, float], r
     return flow, pressure, all_edges, graph
 
 
-def get_nidus(digraph: nx.DiGraph) -> nx.DiGraph:
+def get_nidus(digraph: nx.DiGraph, include_feeders_and_drainers: bool = False) -> nx.DiGraph:
     """Returns a new graph that consists only of fistulous and plexiform edges of the given graph.
     
     Args:
         digraph
+        include_feeders_and_drainers
     
     Returns:
         nidus
     """
-    nidus = nx.DiGraph([edge for edge in digraph.edges(data=True) if edge[2]["type"] in (vessel.fistulous, vessel.plexiform)])
+
+    if include_feeders_and_drainers:
+        nidus = nx.DiGraph([edge for edge in digraph.edges(data=True) if edge[2]["type"] in (vessel.fistulous, vessel.plexiform, vessel.feeder, vessel.drainer)])
+    else:
+        nidus = nx.DiGraph([edge for edge in digraph.edges(data=True) if edge[2]["type"] in (vessel.fistulous, vessel.plexiform)])
 
     for node, attrs in digraph.nodes(data=True):
         if node in nidus.nodes:
