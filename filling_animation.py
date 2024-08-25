@@ -1,6 +1,6 @@
 """Randomly generates a nidus with nodes arranged in columns."""
 
-from injections import injections
+import injections
 import avm
 import copy
 import figures
@@ -17,7 +17,23 @@ CALCULATE_ERROR = True
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
 
+# settings
+HYPOTENSION = ["normal", "minor", "moderate", "profound"][3]
+CVP = ["normal", "elevated"][1]
+CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
+OCCLUDED = ["AF1", "AF2", "AF3", "AF4"][1]
+INJECTION_LOCATION = ["DV1", "DV2", "DV3"][0]
+MAX_INJECTION_PRESSURE = 20
+
+FOLDER = f"temp/filling_injection/{HYPOTENSION}_{CVP}_{CARDIAC_PHASE}_{MAX_INJECTION_PRESSURE}_{INJECTION_LOCATION}_{OCCLUDED}"
+
 def main():
+    
+    if os.path.exists(FOLDER):
+        raise FileExistsError(f"Folder already exists at {FOLDER}")
+    else:
+        os.makedirs(FOLDER)
+        print(f"Folder created at {FOLDER}")
 
     avm.PREDEFINED_RESISTANCE = False
     start_time = time.time()
@@ -25,49 +41,46 @@ def main():
     feeders = ['AF1', 'AF2', 'AF3', 'AF4']
     drainers = ['DV1', 'DV2', 'DV3']
 
-    injection_pressures = list(injections.values())
+    pressure_sets = [injections.generate_pressure_set(INJECTION_LOCATION if injection_pressure else None, injection_pressure, HYPOTENSION, CVP, CARDIAC_PHASE) for injection_pressure in range(0, MAX_INJECTION_PRESSURE + 1)]
 
     node_pos = copy.deepcopy(avm.NODE_POS_TEMPLATE)
-    while True:
+    num_compartments = generate.normint(3, 6, sd=1)
+    num_columns = generate.normint(3, 7, sd=1)
+    num_compartments = 6
+    num_columns = 7
+    num_intercompartmental_vessels = num_compartments * num_columns * 2
+    print(f"{num_compartments} compartments, {num_columns} columns")
+    
+    network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
+    network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
 
-        num_compartments = generate.normint(3, 6, sd=1)
-        num_columns = generate.normint(3, 7, sd=1)
-        num_compartments = 6
-        num_columns = 7
-        num_intercompartmental_vessels = num_compartments * num_columns * 2
-        print(f"{num_compartments} compartments, {num_columns} columns")
-        
-        network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
-        network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
-
-        flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, [], injection_pressures, CALCULATE_ERROR)
-        max_jump, max_fill, prev = 0, 0, 0
-        for graph in graphs:
-            new = avm.get_stats(graph, graphs[0], 6, 0, "DV3")["Percent filled post-injection (%)"]
-            max_fill = max(new, max_fill)
-            if new - prev > max_jump:
-                max_jump = new - prev
-            prev = new
-        print(max_jump, max_fill)
-        if max_jump < 20 and max_fill > 30 and max_fill < 40: break
+    flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, pressure_sets, CALCULATE_ERROR)
+    max_jump, max_fill, prev = 0, 0, 0
+    for graph in graphs:
+        new = avm.get_stats(graph, graphs[0], 6, 0, "DV3")["Percent filled post-injection (%)"]
+        max_fill = max(new, max_fill)
+        if new - prev > max_jump:
+            max_jump = new - prev
+        prev = new
+    print(max_jump, max_fill)
     print("generated")
     error = error if error else None
 
-    filled_vessels = set([(11, "DV3")])
+    animation_phase = 0
+    filled_vessels = set()
     frame = 0
-    for j, label in enumerate(injections.keys()):
-        (injection_location, injection_pressure, hypotension, cvp) = label
+    for injection_pressure in list(range(0, MAX_INJECTION_PRESSURE + 1)) + [0]:
 
-        flow = flows[:, j]
-        pressure = pressures[:, j]
-        graph = graphs[j]
+        injection_location = INJECTION_LOCATION if injection_pressure else None
+        
+        flow = flows[:, injection_pressure]
+        pressure = pressures[:, injection_pressure]
+        graph = graphs[injection_pressure]
 
         vessel_count = 0
         for start, end, type in graph.edges.data("type"):
             if type in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer, avm.vessel.feeder]:
                 vessel_count += 1
-
-        print(label)
 
         while True:
 
@@ -92,7 +105,8 @@ def main():
 
                 plt.text(0.01, 0.99, f"Injection pressure: {int(injection_pressure)} mmHg\nFilling: {int(len(filled_vessels) / vessel_count * 100)}%", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
 
-                filename = f"temp/filling_injection/profound_20_DV3/{frame:03d}_{label[2]}_{label[0]}.png"
+                filename = FOLDER + f"/{frame:03d}.png"
+                
                 plt.savefig(filename)
                 # plt.show()
                 plt.close()
