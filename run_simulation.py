@@ -64,7 +64,11 @@ def main():
 
         for occluded in [None] + feeders:
             
-            network = full_network
+            if occluded is not None:
+                network = full_network.copy()
+                network.remove_edge(occluded[0], occluded[1])
+            else: network = full_network
+
             flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, injection_pressures, CALCULATE_ERROR)
             error = error if error else None
 
@@ -75,16 +79,6 @@ def main():
                 flow = flows[:, j]
                 pressure = pressures[:, j]
                 graph = graphs[j]
-
-                if occluded is not None and occluded[1] == "AF1":
-                    if 3 not in graph[2]:
-                        attrs = graph[3][2]
-                        graph.remove_edge(3, 2)
-                        graph.add_edge(2, 3, **attrs)
-                    if 2 not in graph[1]:
-                        attrs = graph[2][1]
-                        graph.remove_edge(2, 1)
-                        graph.add_edge(1, 2, **attrs)
 
                 stats = avm.get_stats(graph, no_injection_graph, injection_pressure_mmHg=label[1], injection_location=label[0])
 
