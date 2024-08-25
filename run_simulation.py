@@ -121,14 +121,12 @@ def main():
                 injection_location, injection_pressure, hypotension, cvp, cardiacPhase = label
 
                 # Flow
-                # if injection_location:
-                #     print(label, occluded, stats["Percent filled post-injection (%)"])
-                #     plt.figure(figsize=(1920/100, 1080/100))
-                #     # figures.display_flow(graph, node_pos)
-                #     figures.bw(graph, node_pos)
-                #     # plt.text(0.01, 0.99, f"Hypotension: {hypotension}\nInjection: {injection_pressure} mmHg\nFilling: {int(stats['Percent filled post-injection (%)'])}%", transform=plt.gca().transAxes, fontsize=20, verticalalignment='top')
-                #     # plt.text(0.01, 0.96, f"Mean Vessel Rupture Risk: {int(stats['Mean rupture risk (%)'])}%", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
-                #     plt.show()
+                if False and injection_location == 'DV2' and injection_pressure == 30 and hypotension == 'moderate' and cvp == 'normal' and cardiacPhase == 'average':
+                    print(label, occluded, stats["Percent filled post-injection (%)"])
+                    plt.figure(figsize=(1920/100, 1080/100))
+                    figures.display_filling(graph, node_pos)
+                    plt.text(0.01, 0.99, f"Hypotension: {hypotension}\nInjection: {injection_pressure} mmHg\nFilling: {int(stats['Percent filled post-injection (%)'])}%", transform=plt.gca().transAxes, fontsize=20, verticalalignment='top')
+                    plt.show()
 
                 # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
                 # plt.text(0.01, 0.96, f"Total Nidal Flow: {int(stats['Feeder total flow (mL/min)'])} mL/min", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
