@@ -64,7 +64,7 @@ NODE_POS_TEMPLATE = {
     "DV3": [500, -250],
 }
 
-# VESSELS_TEMPLATE elements are formatted like [first node, second node, radius (cm), length (cm), resistance (mmHg * min / mL), label, type (optional)].
+# VESSELS_TEMPLATE elements are formatted like [first node, second node, radius (cm), length (cm), resistance (mmHg * min / mL) but this is not used - it's computed instead, label, type (optional)].
 VESSELS_TEMPLATE = [
     [13, "SP", 0.75, 10, 3.2, "SVC"], # superior vena cava
     ["SP", 1, 1, 10, 1, "AA"], # aortic arch

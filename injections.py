@@ -14,6 +14,7 @@
 import avm
 import numpy as np
 
+# [systemic_pressure, af1_and_af2, af3_and_af4, dv, cvp]
 templates = {
     # ("normal", "normal", "systolic"): [74, 52, 52, -19, -6],
     # ("minor", "normal", "systolic"): [70, 51, 51, -17, -5],
