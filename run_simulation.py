@@ -118,6 +118,8 @@ def main():
                 # print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.feeder])
                 # print([(edge[0], edge[1], edge[2]["pressure"]) for edge in graph.edges(data=True) if edge[2]["type"] == avm.vessel.drainer])
 
+                injection_location, injection_pressure, hypotension, cvp, cardiacPhase = label
+
                 # Flow
                 # if injection_location:
                 #     print(label, occluded, stats["Percent filled post-injection (%)"])
