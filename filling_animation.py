@@ -21,7 +21,7 @@ FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k
 HYPOTENSION = ["normal", "minor", "moderate", "profound"][3]
 CVP = ["normal", "elevated"][1]
 CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
-OCCLUDED = ["AF1", "AF2", "AF3", "AF4"][1]
+OCCLUDED = ["AF1", "AF2", "AF3", "AF4", None][1]
 INJECTION_LOCATION = ["DV1", "DV2", "DV3"][0]
 MAX_INJECTION_PRESSURE = 20
 
