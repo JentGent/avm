@@ -48,7 +48,11 @@ def main():
         feeders = ['AF1', 'AF2', 'AF3', 'AF4']
         drainers = ['DV1', 'DV2', 'DV3']
     
-        injection_pressures = list(injections.values())
+        all_pressure_sets = list(injections.values())
+        all_pressure_keys = injections.keys()
+        average_injections = { key: injections[key] for key in injections if key[4] == "average" }
+        average_pressure_sets = list(average_injections.values())
+        average_pressure_keys = average_injections.keys()
 
         all_stats = {}
 
@@ -67,14 +71,19 @@ def main():
             if occluded is not None:
                 network = full_network.copy()
                 network.remove_edge(occluded[0], occluded[1])
-            else: network = full_network
-
-            flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, injection_pressures, CALCULATE_ERROR)
+                pressure_sets = average_pressure_sets
+                injection_keys = average_pressure_keys
+            else:
+                network = full_network
+                pressure_sets = all_pressure_sets
+                injection_keys = all_pressure_keys
+            
+            flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, pressure_sets, CALCULATE_ERROR)
             error = error if error else None
 
-            for j, label in enumerate(injections.keys()):
+            for j, label in enumerate(injection_keys):
 
-                no_injection_graph = graphs[list(injections.keys()).index((None, 0, label[2], label[3], label[4]))]
+                no_injection_graph = graphs[list(injection_keys).index((None, 0, label[2], label[3], label[4]))]
 
                 flow = flows[:, j]
                 pressure = pressures[:, j]

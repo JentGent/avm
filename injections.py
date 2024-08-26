@@ -53,7 +53,7 @@ def generate_pressure_set(injection_location, injection_pressure, hypotension, c
 
 injections = {}
 for injection_location in [None, "DV1", "DV2", "DV3"]:
-    for injection_pressure in [10, 20, 30] if injection_location else [0]:
+    for injection_pressure in range(20, 31) if injection_location else [0]:
         for (hypotension, cvp, cardiacPhase), pressures in templates.items():
             key = (injection_location, injection_pressure, hypotension, cvp, cardiacPhase)
             injections[key] = generate_pressure_set(*key)
