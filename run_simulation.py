@@ -19,7 +19,7 @@ CALCULATE_ERROR = False
 ITERATIONS = float('inf')
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
-FILE_NAME = "data-2024-08-22-mac.csv"
+FILE_NAME = "data/2024-08-26-test-mac.csv"
 
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
