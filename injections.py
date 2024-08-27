@@ -34,7 +34,7 @@ templates = {
     ("normal", "normal", "diastolic"): [74, 43, 43, -15, -6],
     ("minor", "normal", "diastolic"): [70, 44, 44, -14, -5],
     ("moderate", "normal", "diastolic"): [50, 30, 30, -11, -5],
-    ("profound", "normal", "diastolic"): [25, 14, 14, -7, -4],
+    ("profound", "normal", "diastolic"): [25, 13, 13, -7, -4],
 }
 
 def generate_pressure_set(injection_location, injection_pressure, hypotension, cvp, cardiacPhase):
