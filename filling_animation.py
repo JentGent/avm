@@ -19,11 +19,11 @@ FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k
 
 # settings
 HYPOTENSION = ["normal", "minor", "moderate", "profound"][3]
-CVP = ["normal", "elevated"][1]
+CVP = ["normal", "elevated"][0]
 CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
-OCCLUDED = [None, "AF1", "AF2", "AF3", "AF4"][1]
+OCCLUDED = [None, "AF1", "AF2", "AF3", "AF4"][0]
 INJECTION_LOCATION = ["DV1", "DV2", "DV3"][0]
-MAX_INJECTION_PRESSURE = 20
+MAX_INJECTION_PRESSURE = 30
 
 FOLDER = f"temp/filling_injection/{HYPOTENSION}_{CVP}_{CARDIAC_PHASE}_{MAX_INJECTION_PRESSURE}_{INJECTION_LOCATION}_{OCCLUDED}"
 
@@ -59,7 +59,7 @@ def main():
             max_jump = max(new - prev, max_jump)
             prev = new
         print(max_jump, max_fill)
-        if max_jump < 27 and max_fill > 70: break
+        if max_jump < 37 and max_fill > 80: break
     print("generated")
     error = error if error else None
     
@@ -109,7 +109,7 @@ def main():
                 figures.display_filling(avm.get_nidus(graph, True), node_pos)
                 # plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
-                plt.text(0.01, 0.99, f"Injection pressure: {int(injection_pressure)} mmHg\nFilling: {int(len(filled_vessels) / vessel_count * 100)}%", transform=plt.gca().transAxes, fontsize=15, verticalalignment='top')
+                plt.text(0.01, 0.99, f"Injection pressure: {int(injection_pressure)} mmHg\nFilling: {int(len(filled_vessels) / vessel_count * 100)}%", transform=plt.gca().transAxes, fontsize=30, verticalalignment='top')
 
                 filename = FOLDER + f"/{frame:03d}.png"
                 

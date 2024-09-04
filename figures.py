@@ -248,6 +248,9 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
         
     sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=0, vmax=1))
     sm.set_array([])
+
+    # The color bar isn't necessary, but the dimensions look off relative to the other graphs if we don't include it
+    # So we include it, and then you can crop it out in post
     colorbar = plt.colorbar(sm, ax=plt.gca(), pad=0.01)
     colorbar.set_label("Filling", size=20, labelpad=20)
 
