@@ -3,9 +3,10 @@ from PIL import Image
 import numpy as np
 import os
 
-DIRECTORY = 'temp/filling_injection/profound_elevated_average_20_DV1_AF2'
+DIRECTORY = 'temp/filling_injection/profound_normal_average_30_DV1_None'
 TOP, BOTTOM, LEFT, RIGHT = 0.1, 0.9, 0.12, 0.784
 HAS_OVERLAY = True
+OVERLAY_END_FRAME = 30  # If 30, then the 31st frame will no longer have an overlay
 
 
 def main():
@@ -23,7 +24,7 @@ def main():
         img = Image.open(filename)
         img_cropped = img.crop((int(LEFT * img.width), int(TOP * img.height), int(RIGHT * img.width), int(BOTTOM * img.height)))
 
-        if HAS_OVERLAY:
+        if HAS_OVERLAY and i <= OVERLAY_END_FRAME:
             img_cropped.paste(syringe_cropped, (0, 0), syringe_cropped)  # Using the alpha channel of the syringe image
             
         images.append(np.array(img_cropped))  # Convert the image back to a numpy array for GIF creation
