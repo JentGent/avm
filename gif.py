@@ -1,25 +1,38 @@
 import imageio.v2 as imageio
+from PIL import Image
+import numpy as np
 import os
 
-# Path to the directory containing PNG files
-directory = 'temp/filling_injection/profound_20_DV3'
+DIRECTORY = 'temp/filling_injection/profound_elevated_average_20_DV1_AF2'
+TOP, BOTTOM, LEFT, RIGHT = 0.1, 0.9, 0.12, 0.784
+HAS_OVERLAY = True
 
-# List all PNG files in the directory and sort them alphabetically
-filenames = sorted([os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.png')])
-print(filenames)
 
-# Read images
-images = []
-for i, filename in enumerate(filenames):
-    if 'None' not in filename and i < len(filenames) - 1 and 'None' in filenames[i + 1]:
-        print(filename)
-        for _ in range(5):
-            images.append(imageio.imread(filename))
-    else:
-        images.append(imageio.imread(filename))
+def main():
 
-# Create a GIF
-output_path = os.path.join(directory, 'filling_injection.gif')
-imageio.mimsave(output_path, images, format='gif', fps=1.5, loop=0)
+    filenames = sorted([os.path.join(DIRECTORY, file) for file in os.listdir(DIRECTORY) if file.endswith('.png')])
+    print(f'{len(filenames)} files')
 
-print(f"GIF created at {output_path}")
+    images = []
+
+    syringe_img = Image.open('assets/syringe-dv1.png')
+    syringe_cropped = syringe_img.crop((int(LEFT * syringe_img.width), int(TOP * syringe_img.height), int(RIGHT * syringe_img.width), int(BOTTOM * syringe_img.height)))
+
+    for i, filename in enumerate(filenames):
+
+        img = Image.open(filename)
+        img_cropped = img.crop((int(LEFT * img.width), int(TOP * img.height), int(RIGHT * img.width), int(BOTTOM * img.height)))
+
+        if HAS_OVERLAY:
+            img_cropped.paste(syringe_cropped, (0, 0), syringe_cropped)  # Using the alpha channel of the syringe image
+            
+        images.append(np.array(img_cropped))  # Convert the image back to a numpy array for GIF creation
+
+    output_path = os.path.join(DIRECTORY, 'filling_injection.gif')
+    imageio.mimsave(output_path, images, format='gif', fps=1.5, loop=0)
+
+    print(f"GIF created at {output_path}")
+
+
+if __name__ == "__main__":
+    main()
