@@ -77,18 +77,15 @@ def display(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = N
 
 
 def bw(graph: nx.Graph, node_pos={}, title: str = None, label: Literal["name", "flow", "pressure", None] = "name"):
-    """Displays the graph in black and white.
+    """Displays the graph in black and white, with solid, non-directional black lines.
 
     Args:
         graph: The graph.
-        intranidal_nodes: The nodes in the nidus. This is only for color-coding.
         node_pos: A dictionary of node : [x, y] positions.
         title: Optional title for the graph.
         label: Specifies whether/what to label the vessels.
     """
-    filled_color = plt.cm.Blues(0.99)
-    unfilled_color = (1, 0.9, 0.9)
-    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed = 1)
+    pos = nx.spring_layout(graph, 1, node_pos, node_pos.keys(), seed=1)
 
     # Fix node positions
     xs, ys = [coords[0] for node, coords in pos.items() if node not in node_pos], [coords[1] for node, coords in pos.items() if node not in node_pos]
@@ -102,33 +99,39 @@ def bw(graph: nx.Graph, node_pos={}, title: str = None, label: Literal["name", "
             if node not in node_pos.keys():
                 pos[node] = [0.1 + 0.55 * (coords[0] - mx) / Mx, 1.15 * (coords[1] - my) / My - 0.75]
 
-    # Edges
     edge_order = list(graph.edges(data=True))
-    edge_order = sorted(edge_order, key=lambda edge: 2 if edge[2]["type"] == avm.vessel.fistulous else 1 if "reached" in edge[2] and edge[2]["reached"] else 0)
-    edges = nx.draw_networkx_edges(graph, pos, node_size=0, edgelist=edge_order, edge_color="white")
+    fistulous_edges = [(u, v, d) for u, v, d in edge_order if d["type"] == avm.vessel.fistulous]
+    non_fistulous_edges = [(u, v, d) for u, v, d in edge_order if d["type"] != avm.vessel.fistulous]
 
-    for i, edge in enumerate(edges):
-        is_fistulous = edge_order[i][2]["type"] == avm.vessel.fistulous
-        is_intranidal = edge_order[i][2]["type"] in [avm.vessel.plexiform, avm.vessel.fistulous]
-        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=1.5 if is_fistulous else 1 if is_intranidal else 2, head_width=1.5 if is_fistulous else 1 if is_intranidal else 2, tail_width=0.6 if is_fistulous else 0.4 if is_intranidal else 0.8))
-        if "occluded" in edge_order[i][2] and edge_order[i][2]["occluded"]:
-            edge.set_color("white")
+    # Draw non-fistulous edges
+    nx.draw_networkx_edges(graph, pos, edgelist=[(u, v) for u, v, d in non_fistulous_edges], edge_color="black", arrows=False, style='solid')
+
+    # Draw fistulous edges with arrows
+    fistulous_lines = nx.draw_networkx_edges(
+        graph, pos, edgelist=[(u, v) for u, v, d in fistulous_edges], node_size=4, edge_color="white", arrows=True, arrowstyle='simple'
+    )
+
+    # Modify fistulous edges for white arrow with black border
+    for i, edge in enumerate(fistulous_lines):
+        edge.set(arrowstyle=matplotlib.patches.ArrowStyle('simple', head_length=0.5, head_width=0.5, tail_width=0.2))
         edge.set_edgecolor("black")
-        edge.set_linewidth(2 if edge_order[i][2]["type"] == avm.vessel.fistulous else 0.3)
-    
+        edge.set_linewidth(0.5)
+
+    # Draw solid black nodes
+    nx.draw_networkx_nodes(graph, pos, node_size=5, node_color='black')
+
     edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in edge_order if "occluded" not in edge[2] or not edge[2]["occluded"]}
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=15)
-    edge_labels = {(edge[0], edge[1]): "✖" for edge in edge_order if "occluded" in edge[2] and edge[2]["occluded"]}
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=30, rotate=False, bbox={ "alpha": 0 }, verticalalignment="center_baseline")
-    plt.text(200 - 0, -500 - 10, "AF1", fontsize=15, horizontalalignment="right", verticalalignment="top")
-    plt.text(200 - 0, -370 - 10, "AF2", fontsize=15, horizontalalignment="right", verticalalignment="top")
-    plt.text(200 - 0, -200 + 10, "AF3", fontsize=15, horizontalalignment="right", verticalalignment="bottom")
-    plt.text(350 - 10, -150, "AF4", fontsize=15, horizontalalignment="right", verticalalignment="center")
-        
+    # nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=15)
+
+    if title:
+        plt.title(title)
+
     sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, norm=plt.Normalize(vmin=0, vmax=1))
     sm.set_array([])
     colorbar = plt.colorbar(sm, ax=plt.gca(), pad=0.01)
     colorbar.set_label("Filling", size=20, labelpad=20)
+
+    plt.show()
 
 
 def display_labels(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: float = None, cmap_max: float = None, color: Literal["flow", "pressure", "filling"] = "flow", label: Literal["name", "flow", "pressure", None] = "name", fill_by_flow = True):
