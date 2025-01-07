@@ -16,7 +16,7 @@ import logging
 CALCULATE_ERROR = False
 
 # ITERATIONS is the number of unique graphs to generate.
-ITERATIONS = float('inf')
+ITERATIONS = 1
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
 FILE_NAME = "data-2024-08-22-mac.csv"
@@ -118,8 +118,8 @@ def main():
                 if False and injection_location == 'DV2' and injection_pressure == 30 and hypotension == 'moderate' and cvp == 'normal' and cardiacPhase == 'average':
                     print(label, occluded, stats["Percent filled post-injection (%)"])
                     plt.figure(figsize=(1920/100, 1080/100))
-                    figures.display_filling(graph, node_pos)
-                    plt.text(0.01, 0.99, f"Hypotension: {hypotension}\nInjection: {injection_pressure} mmHg\nFilling: {int(stats['Percent filled post-injection (%)'])}%", transform=plt.gca().transAxes, fontsize=20, verticalalignment='top')
+                    figures.bw(graph, node_pos)  # Use bw for the monochrome network architecture figure
+                    # plt.text(0.01, 0.99, f"Hypotension: {hypotension}\nInjection: {injection_pressure} mmHg\nFilling: {int(stats['Percent filled post-injection (%)'])}%", transform=plt.gca().transAxes, fontsize=20, verticalalignment='top')
                     plt.show()
 
                 # plt.text(0.01, 0.99, f"{label[2]}", transform=plt.gca().transAxes, fontsize=12, verticalalignment='top')
