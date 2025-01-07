@@ -1,4 +1,4 @@
-"""Randomly generates a nidus with nodes arranged in columns."""
+"""Generates the frames of an animation where the vessel is colored if it is filled."""
 
 import injections
 import avm

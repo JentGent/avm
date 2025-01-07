@@ -1,4 +1,4 @@
-"""Simulates a nidus with nodes arranged in columns."""
+"""Simulates a nidus with nodes arranged in columns. This is the main script to edit and run."""
 
 from injections import injections
 from itertools import combinations
@@ -133,7 +133,7 @@ def main():
                 # plt.close()
 
                 # # Pressure graph
-                
+
                 # plt.figure(figsize=(1920/100, 1080/100))
                 # figures.display_pressure(graph, node_pos)
                 # plt.show()

@@ -1,3 +1,5 @@
+"""Stitches together png images into a gif."""
+
 import imageio.v2 as imageio
 from PIL import Image
 import numpy as np
