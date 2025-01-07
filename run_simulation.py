@@ -19,7 +19,7 @@ CALCULATE_ERROR = False
 ITERATIONS = 1
 
 # FILE_NAME is the name of the file (including the ".csv" ending) to save data to.
-FILE_NAME = "data-2024-08-22-mac.csv"
+FILE_NAME = "data/data-2025-01-07.csv"
 
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
@@ -67,7 +67,8 @@ def main():
             if occluded is not None:
                 network = full_network.copy()
                 network.remove_edge(occluded[0], occluded[1])
-            else: network = full_network
+            else:
+                network = full_network
 
             flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, injection_pressures, CALCULATE_ERROR)
             error = error if error else None
@@ -114,7 +115,8 @@ def main():
 
                 injection_location, injection_pressure, hypotension, cvp, cardiacPhase = label
 
-                # Flow
+                # Flow graph
+                
                 if False and injection_location == 'DV2' and injection_pressure == 30 and hypotension == 'moderate' and cvp == 'normal' and cardiacPhase == 'average':
                     print(label, occluded, stats["Percent filled post-injection (%)"])
                     plt.figure(figsize=(1920/100, 1080/100))
@@ -130,7 +132,8 @@ def main():
                 # # plt.show()
                 # plt.close()
 
-                # # Pressure
+                # # Pressure graph
+                
                 # plt.figure(figsize=(1920/100, 1080/100))
                 # figures.display_pressure(graph, node_pos)
                 # plt.show()
