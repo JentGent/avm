@@ -1,16 +1,5 @@
 """Generates a dict of sets of pressure values for injections in each DV at different blood pressure levels."""
 
-# autoregulation
-# pulsatility; phases of cardiac cycle?
-
-# get total flow around 300-450:
-# decrease length
-# # nodes in column
-# # cross-compartmental vessels
-
-# calculate backfilling threshold
-# calculate backfilling by comparing to 0 injection
-
 import avm
 import numpy as np
 
