@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import time
 import logging
+import winsound
 
 # CALCULATE_ERROR indicates whether or not Kirchoff law pressure error is calculated for each simulation. This slows down the simulation noticeably. Disable when avm.SOLVE_MODE is set to numpy.lstsq because that is pretty much guaranteed to be accurate.
 CALCULATE_ERROR = False
@@ -151,6 +152,7 @@ def main():
         df.to_csv(FILE_NAME, mode="a", index=False, header=not file_exists)
 
     logger.info(f"{time.time() - start_time} seconds")
+    winsound.Beep(1000, 500)
 
 
 if __name__ == "__main__":
