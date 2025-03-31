@@ -1,4 +1,6 @@
-"""Generates the frames of an animation where the vessel is colored if it is filled."""
+"""Generates the frames of an animation where the vessel is colored if it is filled.
+
+To use this, change the constants at the top of the script. Then run."""
 
 import injections
 import avm
@@ -22,7 +24,7 @@ HYPOTENSION = ["normal", "minor", "moderate", "profound"][3]
 CVP = ["normal", "elevated"][0]
 CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
 OCCLUDED = [None, "AF1", "AF2", "AF3", "AF4"][0]
-INJECTION_LOCATION = ["DV1", "DV2", "DV3"][0]
+INJECTION_LOCATION = ["DV1", "DV2", "DV3"][2]
 MAX_INJECTION_PRESSURE = 30
 
 FOLDER = f"temp/filling_injection/{HYPOTENSION}_{CVP}_{CARDIAC_PHASE}_{MAX_INJECTION_PRESSURE}_{INJECTION_LOCATION}_{OCCLUDED}"
@@ -109,7 +111,7 @@ def main():
                 figures.display_filling(avm.get_nidus(graph, True), node_pos)
                 # plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
-                plt.text(0.01, 0.99, f"Injection pressure: {int(injection_pressure)} mmHg\nFilling: {int(len(filled_vessels) / vessel_count * 100)}%", transform=plt.gca().transAxes, fontsize=30, verticalalignment='top')
+                plt.text(0.01, 0.99, f"Injection pressure: {int(injection_pressure)} mmHg\nFilling: {len(filled_vessels) / vessel_count * 100:.1f}%", transform=plt.gca().transAxes, fontsize=30, verticalalignment='top')
 
                 filename = FOLDER + f"/{frame:03d}.png"
                 
