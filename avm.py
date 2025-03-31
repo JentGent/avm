@@ -1,3 +1,5 @@
+"""This defines a bunch of funtcions that are necessary for the AVM simulation. Do not run this file on its own."""
+
 import networkx as nx
 import numpy as np
 import scipy as sp
