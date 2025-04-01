@@ -1,4 +1,4 @@
-"""Functions for making figures."""
+"""Functions for making figures. Do not run this file on its own."""
 
 import networkx as nx
 import avm
@@ -241,7 +241,7 @@ def display_filling(graph: nx.Graph, node_pos={}, title: str = None, cmap_min: f
         edge.set_linewidth(2 if edge_order[i][2]["type"] == avm.vessel.fistulous else 0.3)
     
     edge_labels = {(edge[0], edge[1]): edge[2]["label"] for edge in edge_order if "occluded" not in edge[2] or not edge[2]["occluded"]}
-    nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=15)
+    nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=10)
     edge_labels = {(edge[0], edge[1]): "✖" for edge in edge_order if "occluded" in edge[2] and edge[2]["occluded"]}
     nx.draw_networkx_edge_labels(graph, pos, edge_labels, font_size=30, rotate=False, bbox={ "alpha": 0 }, verticalalignment="center_baseline")
     plt.text(200 - 0, -500 - 10, "AF1", fontsize=15, horizontalalignment="right", verticalalignment="top")
