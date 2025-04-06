@@ -25,7 +25,9 @@ CVP = ["normal", "elevated"][0]
 CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
 OCCLUDED = [None, "AF1", "AF2", "AF3", "AF4"][0]
 INJECTION_LOCATION = ["DV1", "DV2", "DV3"][2]
-MAX_INJECTION_PRESSURE = 30
+MAX_INJECTION_PRESSURE = 20
+MAX_JUMP = 37
+DESIRED_FILL = 35
 
 FOLDER = f"temp/filling_injection/{HYPOTENSION}_{CVP}_{CARDIAC_PHASE}_{MAX_INJECTION_PRESSURE}_{INJECTION_LOCATION}_{OCCLUDED}"
 
@@ -40,6 +42,7 @@ def main():
     pressure_sets = [injections.generate_pressure_set(INJECTION_LOCATION if injection_pressure else None, injection_pressure, HYPOTENSION, CVP, CARDIAC_PHASE) for injection_pressure in range(0, MAX_INJECTION_PRESSURE + 1)]
 
     while True:
+
         node_pos = avm.NODE_POS_TEMPLATE
         num_compartments = generate.normint(3, 6, sd=1)
         num_columns = generate.normint(3, 7, sd=1)
@@ -51,17 +54,23 @@ def main():
         network = avm.edges_to_graph(avm.VESSELS_TEMPLATE)
         network, _ = generate.compartments(network, feeders, drainers, FIRST_INTRANIDAL_NODE_ID, node_pos, num_compartments, num_columns, num_intercompartmental_vessels, fistula_start = "AF2", fistula_end = "DV2")
         occluded = [edge for edge in network.edges(data=True) if edge[1] == OCCLUDED][0] if OCCLUDED else None
-        if occluded: network.remove_edge(occluded[0], occluded[1])
+        if occluded:
+            network.remove_edge(occluded[0], occluded[1])
 
         flows, pressures, all_edges, graphs, *error = avm.simulate_batch(network, "SP", 0, pressure_sets, CALCULATE_ERROR)
         max_jump, max_fill, prev = 0, 0, 0
+
         for injection_pressure, graph in enumerate(graphs):
             new = avm.get_stats(graph, graphs[0], 4, injection_pressure, INJECTION_LOCATION)["Percent filled post-injection (%)"]
             max_fill = max(new, max_fill)
             max_jump = max(new - prev, max_jump)
             prev = new
-        print(max_jump, max_fill)
-        if max_jump < 37 and max_fill > 80: break
+
+        # Generate architectures until we find one that satisfies the criteria below
+        print(f"Max jump={max_jump}, max fill={max_fill}")
+        if max_jump <= MAX_JUMP and max_fill >= DESIRED_FILL:
+            break
+
     print("generated")
     error = error if error else None
     
@@ -92,21 +101,34 @@ def main():
 
         while True:
 
+            # A fresh set to store which vessels are filled in this frame
             new_filled_vessels = set()
+
+            # If injection is active, seed filling from the injection site
             if injection_location:
                 for vessel in graph.out_edges(injection_location):
                     new_filled_vessels.add(vessel)
+
+            # Propagate filling from vessels that were filled from the prev frame. During injection, this is a BFS (starting from the injection site). During exit, this iterates through each vessel that was filled in the prev frame and makes sure its outgoing neighbors (but not necessarily itself) will be filled in the current frame.
             for vessel in filled_vessels:
-                if vessel not in graph.edges: vessel = (vessel[1], vessel[0])
+
+                # Since filled_vessels edges are stored as non-directional
+                if vessel not in graph.edges:
+                    vessel = (vessel[1], vessel[0])
+
                 for next_vessel in graph.out_edges(vessel[1]):
                     if graph.edges[next_vessel]["type"] in [avm.vessel.fistulous, avm.vessel.plexiform, avm.vessel.drainer, avm.vessel.feeder]:
                         new_filled_vessels.add(next_vessel)
             
+            # Injection Phase: Stop the BFS only when we're no longer adding anything new
+            # Exit Phase: Always stop the BFS so that we get a frame-by-frame look
             if new_filled_vessels == filled_vessels or injection_location is None:
+
                 plt.figure(figsize=(1920/100, 1080/100))
                 nx.set_edge_attributes(graph, False, "reached")
                 for vessel in filled_vessels:
-                    if vessel not in graph.edges: vessel = (vessel[1], vessel[0])
+                    if vessel not in graph.edges:
+                        vessel = (vessel[1], vessel[0])
                     graph.edges[vessel]["reached"] = True
                 figures.display_filling(avm.get_nidus(graph, True), node_pos)
                 # plt.subplots_adjust(left=0, right=1, bottom=0, top=1)
@@ -120,8 +142,14 @@ def main():
                 plt.close()
                 frame += 1
 
-            if new_filled_vessels == filled_vessels:
-                break
+                # Injection Phase: Now that we've added a frame, break so we can do the next injection pressure
+                if injection_location:
+                    break
+
+                # Exit Phase: Stop adding new frames if the frame we just saved has no filled vessels
+                if len(filled_vessels) == 0:
+                    break
+
             filled_vessels = new_filled_vessels
 
     print(f"{time.time() - start_time} seconds")
