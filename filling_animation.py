@@ -19,15 +19,15 @@ CALCULATE_ERROR = True
 # FIRST_INTRANIDAL_NODE_ID is the ID of the first intranidal node (must be updated with NODE_POS).
 FIRST_INTRANIDAL_NODE_ID = max(k for k in avm.NODE_POS_TEMPLATE.keys() if type(k) == int) + 1
 
-# settings
-HYPOTENSION = ["normal", "minor", "moderate", "profound"][3]
+# Settings
+HYPOTENSION = ["normal", "minor", "moderate", "profound"][2]
 CVP = ["normal", "elevated"][0]
 CARDIAC_PHASE = ["average", "systolic", "diastolic"][0]
 OCCLUDED = [None, "AF1", "AF2", "AF3", "AF4"][0]
-INJECTION_LOCATION = ["DV1", "DV2", "DV3"][2]
-MAX_INJECTION_PRESSURE = 20
-MAX_JUMP = 37
-DESIRED_FILL = 35
+INJECTION_LOCATION = ["DV1", "DV2", "DV3"][1]
+MAX_INJECTION_PRESSURE = 30
+MAX_JUMP = 37  # We will generate architectures until we find one where the change in % filled between frames is always <= MAX_JUMP
+DESIRED_FILL = 22  # We will generate architectures until we find one where the max % filled is >= DESIRED_FILL
 
 FOLDER = f"temp/filling_injection/{HYPOTENSION}_{CVP}_{CARDIAC_PHASE}_{MAX_INJECTION_PRESSURE}_{INJECTION_LOCATION}_{OCCLUDED}"
 
